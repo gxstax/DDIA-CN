@@ -1,3 +1,13 @@
 {
-  "plugins": []
+  "title": "DDIA（ZH-CN）",
+  "description": "DDIA中文翻译",
+  "author": "马以",
+  "language": "zh-hans",
+
+  "plugins": ["github","expandable-chapters","back-to-top-button"],
+  "pluginsConfig": {
+      "github": {
+          "url": "https://github.com/your/repo"
+      }
+  }
 }

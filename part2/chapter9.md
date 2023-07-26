@@ -6,3 +6,16 @@
 >
 > —Jay Kreps,取自 *Kafka* 和 *Jepsen*的笔记（2013）
 
+
+
+## salfj
+
+## asfaf
+
+## adfa
+
+## sf
+
+
+
+## 线性一致性

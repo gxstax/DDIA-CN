@@ -454,7 +454,7 @@ COMMIT;
 
 ```
 
-> ❶ FOR UPDATE 指令表示数据库必须对该查询返回的所有行数据加锁。
+`❶ FOR UPDATE 指令表示数据库必须对该查询返回的所有行数据加锁。`
 
 首先这个方法是可行的，但是想要正确的处理，需要你时刻考虑到你应用的底层逻辑，然后在需要的地方主动加锁。稍有不慎，我们便会忘记在该加锁的地方加锁，从而导致竟态条件冲突。
 
@@ -474,8 +474,9 @@ COMMIT;
 
 ```sql
 -- 该语句安全与否，依赖于数据库的具体实现
-UPDATE wiki_pages SET content = 'new content'
-	WHERE id = 1234 AND content = 'old content';
+UPDATE wiki_pages 
+SET content = 'new content'
+WHERE id = 1234 AND content = 'old content';
 ```
 
 如果内容发生了变更与旧内容不相符，那么此次更新将不会生效，这需要你能感知到更新的执行结果对业务的影响，并决定是否有必要做重试操作。如果数据库允许WHERE语句从旧的快照中读取数据，那么这条语句就不能防止更新丢失的发生了，因为即使有另外一个并发写事务的执行，WHERE语句后面的条件也依然是成立的。所以在使用它之前要确保数据库的**比较-设置**是并发安全的。
@@ -526,19 +527,28 @@ UPDATE wiki_pages SET content = 'new content'
 
   ```sql
   BEGIN TRANSACTION;
-  SELECT * FROM doctors
-   WHERE on_call = true
-   AND shift_id = 1234 FOR UPDATE;❶
+  
+  SELECT *
+  FROM   doctors
+  WHERE  on_call = true
+         AND shift_id = 1234
+  FOR UPDATE; ❶
+   
   UPDATE doctors
-   SET on_call = false
-   WHERE name = 'Alice'
-   AND shift_id = 1234;
+  SET    on_call = false
+  WHERE  NAME = 'Alice'
+         AND shift_id = 1234; 
+         
   COMMIT;
   ```
 
-  > ❶ “FOR UPDATE” 的作用是告诉数据库对该条查询语句返回的所有数据行加锁。
+  `❶ “FOR UPDATE” 的作用是告诉数据库对该条查询语句返回的所有数据行加锁。`
 
 #### 更多关于写偏斜的例子
+
+写偏斜看似深奥，一旦你开始注意到它，你便会发现还有很多发生的场景，下面就是一些发生场景的例子：
+
+***会议室预定系统***
 
 
 

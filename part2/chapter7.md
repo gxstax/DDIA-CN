@@ -341,7 +341,7 @@ Alice这个例子中问题其实并不是一个可延续性的问题。因为当
 
 #### 快照隔离的实现
 
-和“**读已提交**”隔离界别一样，实现「**快照隔离**」的典型方案也是使用写锁来防止脏写（参见：[**实现读已提交**](#implementingReadCommitted)），也就是说当一个事务想要对一个数据对象做写入操作时如果有另外一个事务对也在对这个数据对象做写处理，当前事务将发生阻塞，不过这个锁只会加在写操作上，读取是不需要加锁的。从性能的角度考量，快照隔离的设计原则中的一个关键点就是***读操作不阻塞写操作***，***写操作也不会阻塞读操作***。这将使得一个在一致性快照上执行长时间读取的操作与一个写入操作同时进行而不需要加锁这种操作得以实现。
+和「**读已提交**」隔离级别一样，实现「**快照隔离**」的典型方案也是使用写锁来防止脏写（参见：[**实现读已提交**](#implementingReadCommitted)），也就是说当一个事务想要对一个数据对象做写入操作时如果有另外一个事务对也在对这个数据对象做写处理，当前事务将发生阻塞，不过这个锁只会加在写操作上，读取是不需要加锁的。从性能的角度考量，快照隔离的设计原则中的一个关键点就是***读操作不阻塞写操作***，***写操作也不会阻塞读操作***。这将使得一个在一致性快照上执行长时间读取的操作与一个写入操作同时进行而不需要加锁这种操作得以实现。
 
 为了实现「**快照隔离**」，数据库采用了我们在[<font color="#A7535A"> **图7-4**</font>](#figure7-4)中看到过的防止脏读的实现机制。考虑到多个正在运行的事务可能需要看到在不同节点的数据库状态，所以数据库会在内部对每一个数据对象维护多个不同的提交版本。这种维护对象多个版本的技术就是我们大家所熟知的「**多版本并发控制**」（**MVCC-*multiversion concurrency control***）。
 
@@ -349,7 +349,7 @@ Alice这个例子中问题其实并不是一个可延续性的问题。因为当
 
 如[<font color="#A7535A"> **图7-7**</font>](#figure7-7)，展示了PostgreSQL [[31](#ch7References31)]是怎么在基于「**MVCC**」实现「**快照隔离**」级别的（其它数据库基本类似）。当一个事务开始是，系统会分配一个唯一的、自增的事务ID（txid）。每当事务向数据库写入内容时，这些写入的数据都会被打上操作该数据的事务ID标识。
 
-![图7-7](../img/figure7-7.png)
+![图7-7. 基于多版本对象实现的快照隔离](../img/figure7-7.png)
 
 <a id="figure7-7"><font color="#A7535A"> **图7-7.**</font></a> 基于多版本对象实现的**快照隔离**
 
@@ -650,11 +650,81 @@ WHERE id = 1234 AND content = 'old content';
 
 #### 封装事务为存储过程
 
+早期的数据库设计的重心是在事务可以包裹住用户的整个活动流程。例如，预定飞机票便是一个多步骤流程（搜索路线，票价和座位；确认行程航班；在确认的航班选座；输入乘客信息；支付）。数据库设计者认为，把所有的过程看作一个事务进行原子性的提交，会让处理逻辑显得整洁。
+
+但是，人们做出决定的速度总是很缓慢。如果数据库需要一直等待用户输入，那么它很可能会持有大量的并发事务连接，这其中绝大多数都是空闲的。大多数数据库不能有效做到这一点，所以几乎所有的OLTP应用都会避免交互式的等待用户来缩短事务处理时间。在WEB服务中，就相当于事务在同一个HTTP请求中提交，一个事务不能跨多个请求。一个新的HTTP请求对应一个新的事务。
+
+即使将人为因素从关键路径中剔除，事务仍然运行在一个以客户端/服务端交互式的风格下，一个结一个的执行。应用可能会执行一个查询，然后读取结果，然后再依赖第一次查询结果执行另外一个查询等操作。查询动作和查询结果在应用代码（运行在其中一台机器上）和数据库服务（运行在另外一台机器中）来回交互。
+
+在这种交互式的事务模式下，大量的时间被浪费在了应用层和数据库层的网络交互上。如果你不能接受数据库并发，只允同一时间运行一个事务，那么牺牲吞吐量就在所难免了。因为数据库大部分时间都用在了等待应用层当前事务发出下一条查询指令。在这类数据库中，并发的执行多个事务来充分发挥数据库性能就显的很有必要了。
+
+因此，按顺序执行的单线程事务处理系统不允许多个处在不同处理阶段的事务有关联关系。相反，应用程序需要提前把所有涉及的事务编写为一个整体的「**存储过程**」提前告知给数据库。这些方法之间的区别如[<font color="#A7535A">**图7-9**</font>](#figure7-9)。如果事务所需的所有数据都在内存中，「**存储过程**」就无需等待任何网络交互或磁盘IO，这样执行速度就会变得非常快。
+
+![图7-9](../img/figure7-9.png)
+
+<a id="figure7-9"><font color="#A7535A">**图7-9.**</font></a> 交互式事务和存储过程之间的区别（引用[<font color="#A7535A">**图7-8**</font>](#figure7-8)的例子）。
 
 
 
+#### 存储过程的优缺点
+
+存储过程在关系型数据库中存在了有一段时间了，它一直是1999年提出SQL标准协议（SQL/PSM）的一部分。不过出于各种原因，在他身上一直有一些负面的声音。
+
+* 每个数据库供应商都有自己的存储过程语言（Oracle 有 PL/SQL, SQL Server 有 T-SQL, PostgreSQL 有PL/pgSQL,）。这些语言并没有跟上现在通用程序语言的步伐，所以在今天看来他们非常陈旧且不优雅，而且缺少了大多数语言都会有的生态库。
+* 在数据库中运行的代码很难管理：相较于应用服务，数据库调试更困难，版本控制和部署更麻烦，测试更棘手，而且很难与指标收集系统集成来进行监控。
+* 数据库相较于应用服务对性能更敏感，因为当个数据库实例往往被多个应用服务所共享。一个设计不好的存储过程（消耗大量内存或CPU执行时间）往往要比一个写的差的业务代码所造成的危害大的多。
+
+不过这些问题都是可以克服的，现在「**存储过程**」的实现已经摒弃了PL/SQL，而使用现有的通用编程语言代替：VoltDB 使用 Java 或者 Groovy，Datomic使用 Java 或 Clojure，Redis 使用 Lua。
+
+存储过程加上数据内存化，使得所有的事务都运行在单个线程上称为可能。由于不需要等待I/O，也没有对一些并发控制机制处理的额外开销，所以即使是单线程也能够取得不错的吞吐量。
+
+VoltDB还借助「**存储过程**」实现复制：相对于把事务的执行结果从一个节点复制到另一个节点，VoltDB则采用了在每一个副本上执行相同的存储过程的实现方式。这就要求「**存储过程**」必须是确定性的（即在不同的节点上运行时，结果必须完全相同）。如果事务需要获取当前的日期和时间，那么它必须要通过调用专有的确定性的API来获取。
+
+#### 分区
+
+顺序执行事务将会使得并发问题变得简单很多，但是它的吞吐量会受限于一台机器中某个CPU的执行速度。只读事务可以利用「**快照隔离**」技术把一些工作分散到其它地方执行，单对于高吞吐量的应用，单线程事务执行方式就会成为性能瓶颈。
+
+为了把事务处理能力扩展到多个CPU核心，甚至多个节点上，你可以尝试着像VoltDB一样把数据划分为多份（参见：[第六章](chapter6.md)）。如果你可以找到一种合适的方式来合理的分割你的数据集，那么每个事务都可以独立的运行在自己的进程上读写单个分区上的数据就可以了。这样一来，你就可以为每个分区分配指定的CPU核心，从而能够使事务吞吐量随着CPU核心数保持线性关系[[47](#ch7References47)]。
+
+但是，对于需要访问多分区的事务，数据库就必须要协调该事务涉及到的所有分区。存储过程在执行过程中必须对所有涉及分区加「**同步锁**」（lock-step）来保证该执行动作在整个系统中是串行化执行的。
+
+由于跨分区事务有额外的协调事务开销，所以它比单分区事务处理要慢的多。根据VoltDB提供的性能指标，跨分区事务的吞吐量为1000次/秒，这比单分区的吞吐量整整低一个数量级，而且这种性能瓶颈并不能通过增加机器数来解决[[49](#ch7References47)]。
+
+是否可以使用单分区是否很大程度上取决于应用程序的数据结果是怎样的。简单的键-值数据结果往往比较容易做分区，但是像一下涉及多级所以的数据就需要跨多个分区来协调处理了（参见：[第六章：分区与二级索引](chapter6.md#分区与二级索引)）。
+
+#### 串行化执行总结
+
+事务串行执行已经成为在某些约束条件下达成「**可串行化**」隔离的一种可行性方案：
+
+* 事务必须小而快，因为一个慢事务将会阻塞所有的事务进程。
+* 仅适用于活动数据存在内存中的场景。一些很少被访问到的数据可能会放到磁盘上存储，但是一旦在一个单线程执行的事务中访问到，它就会拖慢整个系统的运行速度。
+* 写操作所占比例要非常低以便于在单核CPU上执行，或者数据进行了分区，但是事务不涉及跨分区访问。
+* 或者存在跨分区访问，但是使用到的限度在一个低范围之内。
 
 ### 两阶段锁（2PL）
+
+近30年来，数据库就只有一种被广泛使用的「可串行化」执行算法：「**两阶段锁**」（two-phase *locking*-2PL）。
+
+> **2PL ** 不是 **2PC**（两阶段提交）
+>
+> 虽然**2PL**看起来和**2PC**很像，但他们是完全不同的两个东西，我们将在[第九章](chapter9.md)讨论2PC。
+
+我们之前已经看到过在防止脏写中使用到的锁（参见：[无脏写](#无脏写)）如果两个事务并发写同一个对象，这个锁要能确保第二个写事务要等到第一个写事务完成（提交或中止）之后才能继续执行。
+
+两阶段锁类似，但是它对加锁的要求更高一些。当一个对象不存在写操作时它允许多个并发事务同时读取。但是一旦某个事务想要对该对象做写操作（修改或删除），那么就必须独占请求：
+
+* 如果事务A正在在读取的对象，同样是事务B想要写的对象，那么事务B则必须要等到事务A提交或中止后才能继续它的操作（确保B不能在A感知不到的情况下随意修改对象）。
+* 如果事务A正在写对象的时候，事务B想要读该对象，事务B也要等到事务A提交或中止后才能继续（就像[<font color="#A7535A">**图7-1**</font>](#figure7-1)的例子一样，读取到旧值，对「**2PL**」来说同样是不可接受的）。
+
+在「**2PL**」中，写操作不止阻塞写操作，它也会阻塞读操作（反之亦然）。「**镜像隔离**」有这样一条准则：**读不阻塞写，写不阻塞读**（参见：[快照隔离的实现](#快照隔离的实现)），这便是「**快照隔离**」和「**两阶段锁**」最本质的区别。另外，由于两阶段锁可以提供「**可串行化**」保证，所以它可以防止我们之前所讨论的所以**竟态条件**，包括「**丢失更新**」和「**写偏斜**」。
+
+#### 两阶段锁的实现
+
+两阶段锁被用在了MySQL (InnoDB) 和 SQL Server的「**可串行化**」隔离级别以及DB2的「**可重复读**」隔离级别中[[23](#ch7References23)，[36](#ch7References36)]。
+
+
+
+
 
 
 
@@ -666,111 +736,111 @@ WHERE id = 1234 AND content = 'old content';
 
 [<a id="ch7References1">1</a>] Donald D. Chamberlin, Morton M. Astrahan, Michael W. Blasgen, et al.: “[A History and Evaluation of System R](../references/chapter7/A-History-and-Evaluation-of-System-R.pdf),” *Communications of the ACM*, volume 24, number10, pages 632–646, October 1981. doi:10.1145/358769.358784
 
-[<a id="ch7References2">2</a>]
+[<a id="ch7References2">2</a>] Jim N. Gray, Raymond A. Lorie, Gianfranco R. Putzolu, and Irving L. Traiger:“[Granularity of Locks and Degrees of Consistency in a Shared Data Base](http://citeseer.ist.psu.edu/viewdoc/download?doi=10.1.1.92.8248&rep=rep1&type=pdf),” in *Model‐ling in Data Base Management Systems: Proceedings of the IFIP Working Conference on Modelling in Data Base Management Systems*, edited by G. M. Nijssen, pages 364–394, Elsevier/North Holland Publishing, 1976. Also in *Readings in Database Systems*,4th edition, edited by Joseph M. Hellerstein and Michael Stonebraker, MIT Press,2005.ISBN: 978-0-262-69314-1
 
-[<a id="ch7References3">3</a>]
+[<a id="ch7References3">3</a>] Kapali P. Eswaran, Jim N. Gray, Raymond A. Lorie, and Irving L. Traiger: “[The Notions of Consistency and Predicate Locks in a Database System](https://citeseer.ist.psu.edu/viewdoc/download?doi=10.1.1.92.8248&rep=rep1&type=pdf),” *Communications of the ACM*, volume 19, number 11, pages 624–633, November 1976.
 
-[<a id="ch7References4">4</a>]
+[<a id="ch7References4">4</a>] “[ACID Transactions Are Incredibly Helpful](http://web.archive.org/web/20150320053809/https://foundationdb.com/acid-claims),” FoundationDB, LLC, 2013.
 
-[<a id="ch7References5">5</a>]
+[<a id="ch7References5">5</a>] John D. Cook: “[ACID Versus BASE for Database Transactions](http://www.johndcook.com/blog/2009/07/06/brewer-cap-theorem-base/),” *johndcook.com*, July 6, 2009.
 
-[<a id="ch7References6">6</a>]
+[<a id="ch7References6">6</a>]  Gavin Clarke: “[NoSQL’s CAP Theorem Busters: We Don’t Drop ACID](https://www.theregister.com/2012/11/22/foundationdb_fear_of_cap_theorem/),” *theregister.co.uk*, November 22, 2012.
 
-[<a id="ch7References7">7</a>]
+[<a id="ch7References7">7</a>] Theo Härder and Andreas Reuter: “[Principles of Transaction-Oriented Database Recovery](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.87.2812&rep=rep1&type=pdf),” *ACM Computing Surveys*, volume 15, number 4, pages 287–317, December 1983. [doi:10.1145/289.291](https://dl.acm.org/doi/10.1145/289.291)
 
-[<a id="ch7References8">8</a>]
+[<a id="ch7References8">8</a>] Peter Bailis, Alan Fekete, Ali Ghodsi, et al.: “[HAT, not CAP: Towards Highly Available Transactions](http://www.bailis.org/papers/hat-hotos2013.pdf),” at *14th USENIX Workshop on Hot Topics in Operating Systems* (HotOS), May 2013.
 
-[<a id="ch7References9">9</a>]
+[<a id="ch7References9">9</a>] Armando Fox, Steven D. Gribble, Yatin Chawathe, et al.: “[Cluster-Based Scalable Network Services](http://www.cs.berkeley.edu/~brewer/cs262b/TACC.pdf),” at *16th ACM Symposium on Operating Systems Principles* (SOSP),October 1997.
 
-[<a id="ch7References10">10</a>]
+[<a id="ch7References10">10</a>] Philip A. Bernstein, Vassos Hadzilacos, and Nathan Goodman: [*Concurrency Control and Recovery in Database Systems*](http://research.microsoft.com/en-us/people/philbe/ccontrol.aspx). Addison-Wesley, 1987. ISBN:978-0-201-10715-9, available online at *research.microsoft.com*. 
 
-[<a id="ch7References11">11</a>]
+[<a id="ch7References11">11</a>] Alan Fekete, Dimitrios Liarokapis, Elizabeth O’Neil, et al.: “[Making Snapshot Isolation Serializable](https://www.cse.iitb.ac.in/infolab/Data/Courses/CS632/2009/Papers/p492-fekete.pdf),” *ACM Transactions on Database Systems*, volume 30, number 2, pages 492–528, June 2005. doi:10.1145/1071610.1071615
 
-[<a id="ch7References12">12</a>]
+[<a id="ch7References12">12</a>] Mai Zheng, Joseph Tucek, Feng Qin, and Mark Lillibridge: “[Understanding the Robustness of SSDs Under Power Fault](https://www.usenix.org/system/files/conference/fast13/fast13-final80.pdf),” at *11th USENIX Conference on File and Storage Technologies* (FAST), February 2013.
 
-[<a id="ch7References13">13</a>]
+[<a id="ch7References13">13</a>] Laurie Denness: “[SSDs: A Gift and a Curse](https://laur.ie/blog/2015/06/ssds-a-gift-and-a-curse/),” *laur.ie*, June 2, 2015.
 
-[<a id="ch7References14">14</a>]
+[<a id="ch7References14">14</a>] Adam Surak: “[When Solid State Drives Are Not That Solid](https://blog.algolia.com/when-solid-state-drives-are-not-that-solid/),” *blog.algolia.com*,June 15, 2015.
 
-[<a id="ch7References15">15</a>]
+[<a id="ch7References15">15</a>] Thanumalayan Sankaranarayana Pillai, Vijay Chidambaram, Ramnatthan Alagappan, et al.: “[All File Systems Are Not Created Equal: On the Complexity of Crafting Crash-Consistent Applications](http://research.cs.wisc.edu/wind/Publications/alice-osdi14.pdf),” at *11th USENIX Symposium on Operating Systems Design and Implementation* (OSDI), October 2014.
 
-[<a id="ch7References16">16</a>]
+[<a id="ch7References16">16</a>] Chris Siebenmann: “[Unix’s File Durability Problem](https://utcc.utoronto.ca/~cks/space/blog/unix/FileSyncProblem),” *utcc.utoronto.ca*, April 14,2016.
 
-[<a id="ch7References17">17</a>]
+[<a id="ch7References17">17</a>] Lakshmi N. Bairavasundaram, Garth R. Goodson, Bianca Schroeder, et al.: “[An Analysis of Data Corruption in the Storage Stack](http://research.cs.wisc.edu/adsl/Publications/corruption-fast08.pdf),” at *6th USENIX Conference on File and Storage Technologies* (FAST), February 2008.
 
-[<a id="ch7References18">18</a>]
+[<a id="ch7References18">18</a>] Bianca Schroeder, Raghav Lagisetty, and Arif Merchant: “[Flash Reliability in Production: The Expected and the Unexpected](https://www.usenix.org/conference/fast16/technical-sessions/presentation/schroeder),” at *14th USENIX Conference on File and Storage Technologies* (FAST), February 2016.
 
-[<a id="ch7References19">19</a>]
+[<a id="ch7References19">19</a>] Don Allison: “[SSD Storage – Ignorance of Technology Is No Excuse](https://blog.korelogic.com/blog/2015/03/24),” *blog.korelogic.com*, March 24, 2015.
 
-[<a id="ch7References20">20</a>]
+[<a id="ch7References20">20</a>] Dave Scherer: “[Those Are Not Transactions (Cassandra 2.0)](http://web.archive.org/web/20150526065247/http://blog.foundationdb.com/those-are-not-transactions-cassandra-2-0),” *blog.foundationdb.com*, September 6, 2013.
 
-[<a id="ch7References21">21</a>]
+[<a id="ch7References21">21</a>] Kyle Kingsbury: “[Call Me Maybe: Cassandra](http://aphyr.com/posts/294-call-me-maybe-cassandra/),” *aphyr.com*, September 24, 2013.
 
-[<a id="ch7References22">22</a>]
+[<a id="ch7References22">22</a>] “[ACID Support in Aerospike](“ACID Support in Aerospike,” Aerospike, Inc., June 2014.),” Aerospike, Inc., June 2014.
 
-[<a id="ch7References23">23</a>]
+[<a id="ch7References23">23</a>] Martin Kleppmann: “[Hermitage: Testing the ‘I’ in ACID](https://martin.kleppmann.com/2014/11/25/hermitage-testing-the-i-in-acid.html),” *martin.kleppmann.com*, November 25, 2014.
 
-[<a id="ch7References24">24</a>]
+[<a id="ch7References24">24</a>] Tristan D’Agosta: “[BTC Stolen from Poloniex](https://bitcointalk.org/index.php?topic=499580),” *bitcointalk.org*, March 4, 2014.
 
-[<a id="ch7References25">25</a>]
+[<a id="ch7References25">25</a>] bitcointhief2: “[How I Stole Roughly 100 BTC from an Exchange and How I Could Have Stolen More!](https://www.reddit.com/r/Bitcoin/comments/1wtbiu/how_i_stole_roughly_100_btc_from_an_exchange_and/),” *reddit.com*, February 2, 2014.
 
-[<a id="ch7References26">26</a>]
+[<a id="ch7References26">26</a>] Sudhir Jorwekar, Alan Fekete, Krithi Ramamritham, and S. Sudarshan: “[Automating the Detection of Snapshot Isolation Anomalies](http://www.vldb.org/conf/2007/papers/industrial/p1263-jorwekar.pdf),” at *33rd International Conference on Very Large Data Bases* (VLDB), September 2007.
 
-[<a id="ch7References27">27</a>]
+[<a id="ch7References27">27</a>] Michael Melanson: “[Transactions: The Limits of Isolation](https://www.michaelmelanson.net/2014/03/20/transactions/),” *michaelmelanson.net*, March 20, 2014.
 
-[<a id="ch7References28">28</a>]
+[<a id="ch7References28">28</a>] Hal Berenson, Philip A. Bernstein, Jim N. Gray, et al.: “[A Critique of ANSI SQL Isolation Levels](http://research.microsoft.com/pubs/69541/tr-95-51.pdf),” at *ACM International Conference on Management of Data* (SIG‐MOD), May 1995.
 
-[<a id="ch7References29">29</a>]
+[<a id="ch7References29">29</a>] Atul Adya: “Weak Consistency: [A Generalized Theory and Optimistic Implementations for Distributed Transactions](http://pmg.csail.mit.edu/papers/adya-phd.pdf),” PhD Thesis, Massachusetts Institute of Technology, March 1999.
 
-[<a id="ch7References30">30</a>]
+[<a id="ch7References30">30</a>]  Peter Bailis, Aaron Davidson, Alan Fekete, et al.: “[Highly Available Transactions:Virtues and Limitations (Extended Version)](http://arxiv.org/pdf/1302.0309.pdf),” at *40th International Conference on Very Large Data Bases* (VLDB), September 2014.
 
-[<a id="ch7References31">31</a>]
+[<a id="ch7References31">31</a>] Bruce Momjian: “[MVCC Unmasked](http://momjian.us/main/presentations/internals.html#mvcc),” *momjian.us*, July 2014.
 
-[<a id="ch7References32">32</a>]
+[<a id="ch7References32">32</a>] Annamalai Gurusami: “[Repeatable Read Isolation Level in InnoDB – How Consistent Read View Works](https://blogs.oracle.com/failaction/404.html),” *blogs.oracle.com*, January 15, 2013.
 
-[<a id="ch7References33">33</a>]
+[<a id="ch7References33">33</a>] Nikita Prokopov: “[Unofficial Guide to Datomic Internals](http://tonsky.me/blog/unofficial-guide-to-datomic-internals/),” *tonsky.me*, May 6,2014.
 
-[<a id="ch7References34">34</a>]
+[<a id="ch7References34">34</a>] Baron Schwartz: “[Immutability, MVCC, and Garbage Collection](http://www.xaprb.com/blog/2013/12/28/immutability-mvcc-and-garbage-collection/),” *xaprb.com*,December 28, 2013.
 
-[<a id="ch7References35">35</a>]
+[<a id="ch7References35">35</a>]  J. Chris Anderson, Jan Lehnardt, and Noah Slater: *CouchDB: The Definitive Guide*. O’Reilly Media, 2010. ISBN: 978-0-596-15589-6
 
-[<a id="ch7References36">36</a>]
+[<a id="ch7References36">36</a>] Rikdeb Mukherjee: “[Isolation in DB2 (Repeatable Read, Read Stability, Cursor Stability, Uncommitted Read) with Examples](http://mframes.blogspot.co.uk/2013/07/isolation-in-cursor.html),” *mframes.blogspot.co.uk*, July 4, 2013.
 
-[<a id="ch7References37">37</a>]
+[<a id="ch7References37">37</a>] Steve Hilker: “[Cursor Stability (CS) – IBM DB2 Community](http://www.toadworld.com/platforms/ibmdb2/w/wiki/6661.cursor-stability-cs.aspx),” *toadworld.com*,March 14, 2013.
 
-[<a id="ch7References38">38</a>]
+[<a id="ch7References38">38</a>] Nate Wiger: “[An Atomic Rant](http://www.nateware.com/an-atomic-rant.html),” *nateware.com*, February 18, 2010.
 
-[<a id="ch7References39">39</a>]
+[<a id="ch7References39">39</a>]  Joel Jacobson: “[Riak 2.0: Data Types](http://blog.joeljacobson.com/riak-2-0-data-types/),” *blog.joeljacobson.com*, March 23, 2014.
 
-[<a id="ch7References40">40</a>]
+[<a id="ch7References40">40</a>] Michael J. Cahill, Uwe Röhm, and Alan Fekete: “[Serializable Isolation for Snapshot Databases](http://www.cs.nyu.edu/courses/fall12/CSCI-GA.2434-001/p729-cahill.pdf),” at *ACM International Conference on Management of Data* (SIG‐MOD), June 2008. doi:10.1145/1376616.1376690
 
-[<a id="ch7References41">41</a>]
+[<a id="ch7References41">41</a>] Dan R. K. Ports and Kevin Grittner: “[Serializable Snapshot Isolation in PostgreSQL](http://drkp.net/papers/ssi-vldb12.pdf),” at *38th International Conference on Very Large Databases* (VLDB), August 2012.
 
-[<a id="ch7References42">42</a>]
+[<a id="ch7References42">42</a>] Tony Andrews: “[Enforcing Complex Constraints in Oracle](http://tonyandrews.blogspot.co.uk/2004/10/enforcing-complex-constraints-in.html),” *tonyandrews.blogspot.co.uk*, October 15, 2004.
 
-[<a id="ch7References43">43</a>]
+[<a id="ch7References43">43</a>] Douglas B. Terry, Marvin M. Theimer, Karin Petersen, et al.: “[Managing Update Conflicts in Bayou, a Weakly Connected Replicated Storage System](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.141.7889&rep=rep1&type=pdf),” at *15th ACM* *Symposium on Operating Systems Principles* (SOSP), December 1995. doi:10.1145/224056.224070
 
-[<a id="ch7References44">44</a>]
+[<a id="ch7References44">44</a>] Gary Fredericks: “[Postgres Serializability Bug](https://github.com/gfredericks/pg-serializability-bug),” *github.com*, September 2015.
 
-[<a id="ch7References45">45</a>]
+[<a id="ch7References45">45</a>] Michael Stonebraker, Samuel Madden, Daniel J. Abadi, et al.: “[The End of an Architectural Era (It’s Time for a Complete Rewrite)](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.137.3697&rep=rep1&type=pdf),” at *33rd International Conference on Very Large Data Bases* (VLDB), September 2007.
 
-[<a id="ch7References46">46</a>]
+[<a id="ch7References46">46</a>] John Hugg: “[H-Store/VoltDB Architecture vs. CEP Systems and Newer Streaming Architectures](https://www.youtube.com/watch?v=hD5M4a1UVz8),” at *Data @Scale Boston*, November 2014.
 
-[<a id="ch7References47">47</a>]
+[<a id="ch7References47">47</a>] Robert Kallman, Hideaki Kimura, Jonathan Natkins, et al.: “[H-Store: A High Performance, Distributed Main Memory Transaction Processing System](http://www.vldb.org/pvldb/1/1454211.pdf),” *Proceedings of the VLDB Endowment*, volume 1, number 2, pages 1496–1499, August 2008.
 
-[<a id="ch7References48">48</a>]
+[<a id="ch7References48">48</a>] Rich Hickey: “[The Architecture of Datomic](http://www.infoq.com/articles/Architecture-Datomic),” *infoq.com*, November 2, 2012.
 
-[<a id="ch7References49">49</a>]
+[<a id="ch7References49">49</a>] John Hugg: “[Debunking Myths About the VoltDB In-Memory Database](http://voltdb.com/blog/debunking-myths-about-voltdb-memory-database),”*voltdb.com*, May 12, 2014.
 
-[<a id="ch7References50">50</a>]
+[<a id="ch7References50">50</a>] Joseph M. Hellerstein, Michael Stonebraker, and James Hamilton: “[Architecture of a Database System](http://db.cs.berkeley.edu/papers/fntdb07-architecture.pdf),” *Foundations and Trends in Databases*, volume 1, number 2,pages 141–259, November 2007 [doi:10.1561/1900000002](http://dx.doi.org/10.1561/1900000002)
 
-[<a id="ch7References51">51</a>]
+[<a id="ch7References51">51</a>] Michael J. Cahill: “[Serializable Isolation for Snapshot Databases](http://cahill.net.au/wp-content/uploads/2010/02/cahill-thesis.pdf),” PhD Thesis,University of Sydney, July 2009.
 
-[<a id="ch7References52">52</a>]
+[<a id="ch7References52">52</a>] D. Z. Badal: “[Correctness of Concurrency Control and Implications in Distributed Databases](http://ieeexplore.ieee.org/abstract/document/762563/),” at *3rd International IEEE Computer Software and Applications Conference* (COMPSAC), November 1979.
 
-[<a id="ch7References53">53</a>]
+[<a id="ch7References53">53</a>] Rakesh Agrawal, Michael J. Carey, and Miron Livny: “[Concurrency Control Performance Modeling: Alternatives and Implications](http://www.eecs.berkeley.edu/~brewer/cs262/ConcControl.pdf),” *ACM Transactions on Database Systems* (TODS), volume 12, number 4, pages 609–654, December 1987. [doi:10.1145/32204.32220](https://dl.acm.org/doi/10.1145/32204.32220)
 
-[<a id="ch7References54">54</a>]
+[<a id="ch7References54">54</a>] Dave Rosenthal: “[Databases at 14.4MHz](http://web.archive.org/web/20150427041746/http://blog.foundationdb.com/databases-at-14.4mhz),” *blog.foundationdb.com*, December 10,2014.
 
 
 

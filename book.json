@@ -7,7 +7,7 @@
   "plugins": ["github","expandable-chapters","back-to-top-button"],
   "pluginsConfig": {
       "github": {
-          "url": "https://github.com/your/repo"
+          "url": "https://github.com/gxstax"
       }
   }
 }

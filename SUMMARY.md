@@ -1,7 +1,7 @@
-# Summary
+# 目录
 
 * [简介](README.md)
-* [前言](readme.md)
+* [前言](Preface.md)
 * [第一部分：数据系统基本原理](part1/README.md)
     * [第一章：可靠、可伸缩以及易维护系统](part1/chapter1.md)
     * [第二章：数据模型与查询语言](part1/chapter2.md)
@@ -18,6 +18,5 @@
     * [第十一章：流处理](part3/chapter11.md)
     * [第十二章：数据系统前景](part3/chapter12.md)
 * [术语表](Glossary.md)
-* [索引](Index.md)
+* [索引](Indexs.md)
 * [关于作者](about_the_author.md)
-

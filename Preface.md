@@ -1,40 +1,19 @@
 # 前言
 
-If you have worked in software engineering in recent years, especially in server-side
+如果近几年你从事过软件工程领域的工作，特别是和服务打交道的后端系统，你可能被大量与数据存储处理有关的流行术语轰炸。NoSQL！大数据-Big Data！网络扩展-Web-scale！分片！最终一致性！ACID！CAP定理！云服务！MapReduce! 即时处理-Real-time！
 
-and backend systems, you have probably been bombarded with a plethora of buzz‐
+在过去的十年里，我们在数据库、分布式系统以及基于他们所构建的应用上看到很多有意思的变革。这其中存在一些因素驱动着变革的发生：
 
-words relating to storage and processing of data. NoSQL! Big Data! Web-scale!
+* 像谷歌、雅虎，亚马逊，Facebook，领英，微软和推特这些网络公司，他们需要处理海量数据和流量，这就急切的迫使他们寻求一种新的工具来帮助他们有效的处理如此大规模的数据。
+* 企业需要敏捷，廉价地测试假设，并通过缩短开发周期和数据模型来快速适应新的市场节奏。
+* 免费的开源软件已经日趋成熟，在某些场景下甚至要优于一些商业软件以及定制化软件。
+* 尽管CPU的频率增加甚微，但是多核计算已经成为现在的标准，而且网络也越发的快速，这就意味着并行性可以一直叠加。
+* 即使你只是在一个小团队中，你也可能会搭建一个涉及多台机器甚至时跨区域的系统，这得益于像亚马逊的Web Service这样的基础架构服务（Iaas）的兴起。
+* 很多服务现在要求系统必须要高可用，由于故障中断或维护而导致长时间停服将越来越不被接受。
 
-Sharding! Eventual consistency! ACID! CAP theorem! Cloud services! MapReduce!
+数据密集型应用程序通过这些科技的发展，正在推动着可能的边界向外延伸。如果一个系统最大的挑战来自于它的数据数量，数据的复杂行或者数据的快速变化，而非受限于CPU执行速度的「计算密集型」系统，那么我们称这样的系统为「数据密集型」应用系统。
 
-Real-time!
 
-In the last decade we have seen many interesting developments in databases, in dis‐
-
-tributed systems, and in the ways we build applications on top of them. There are
-
-various driving forces for these developments:
-
-• Internet companies such as Google, Yahoo!, Amazon, Facebook, LinkedIn,
-
-Microsoft, and Twitter are handling huge volumes of data and traffic, forcing
-
-them to create new tools that enable them to efficiently handle such scale.
-
-• Businesses need to be agile, test hypotheses cheaply, and respond quickly to new
-
-market insights by keeping development cycles short and data models flexible.
-
-• Free and open source software has become very successful and is now preferred
-
-to commercial or bespoke in-house software in many environments.
-
-• CPU clock speeds are barely increasing, but multi-core processors are standard,
-
-and networks are getting faster. This means parallelism is only going to increase.
-
-• Even if you work on a small team, you can now build
 
 
 

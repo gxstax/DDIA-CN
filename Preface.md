@@ -58,19 +58,49 @@
 
 本书分为3个部分：
 
-1. 第一部分，我们将讨论支撑数据密集型应用程序设计的基本思想。
+1. **第一部分**，我们将讨论支撑数据密集型应用程序设计的基本思想。从[第一章](part2/chapter1.md)开始我们将会讨论我们真正想要达到的目标：可靠性，可扩展性以及可维护性；我们应该从哪种维度来思考以及如何具体的实现。在[第二章](part1/chapter2.md)我们会比较集中不同的数据模型以及查询语言，以及他们是怎么在不同的场景下来使用的。在[第三章](part1/chapter3.md)我们讨论存储引擎，数据如何在磁盘上排布，才能方便我们下一次很容易的再查询到它。[第四章](part1/chapter4.md)则会转向数据编码（序列化）及它的演化过程。
+2. **第二部分**，我们从在一台机器上存储数据到多台机器上存储数据，这对「可伸缩性」来说通常是很有必要的，但也会带来一系列特殊的挑战。这部分我们会讨论**副本**（[第五章](part2/chapter5.md)），**分区/分片**（[第六章](part2/chapter6.md)），以及**事务**（[第七章](part2/chapter7.md)），接下来我们会渗入到分布式系统所涉及的问题中来讨论（[第八章](part2/chapter8.md)）和分布式系统中达成一致性共识的意义所在（[第九章](part2/chapter9.md)）。
+3. **第三部分**，我们将讨论从一个数据集到另一个数据集的派生数据系统。派生数据经常出现在异构系统中：当单个数据库不能很好的完成任务时，应用需要结合多个数据库、缓存或者索引等共同完成。我们首先会在[第十章](#part2/chapter10.md)中讨论派生数据的批处理，在这基础上我们接在会在[第十一章](#part3/chapter11.md)讨论流处理。最后在[第十二章](#part2/chapter12.md)我们将结合的来讨论关于构建可靠的、易扩展的以及可维护应用的可行性方案。
 
 ## 参考文献和延伸阅读
 
-
+本书所涉及的大部分内容都已经在其它的某些地方以某种如会议演示文稿，研究论文，博客文章，源码，BUG跟踪器，邮件表等形式出现过了。本书从这些来源中间总结出了他们中最重要的设计思想，其中包括原文件的链接。本书每一章结尾的文献也是一些能让你要更深入了解这些领域知识的重要资料，并且他们几乎都可以在网上免费获取。
 
 ## 奥莱利狩猎系列图书
 
+> Safari（原Safari Books Online）是一个为企业、政府、教育机构以及个人提供会员制培训以及指导的平台。
 
+会员有权限对超过250家出版社所出版的数千本图书，培训视频，学习途径，交互式教程以及精选视频集免费访问。他们包括O’Reilly媒体，Harvard Business Review，Prentice Hall Professional，Addison-Wesley Professional, Microsoft Press, Sams, Que, Peachpit Press, Adobe, Focal Press, Cisco Press, John Wiley & Sons, Syngress, Morgan Kaufmann, IBM Redbooks, Packt,Adobe Press, FT Press, Apress, Manning, New Riders, McGraw-Hill, Jones & Bartlett等课程技术。
+
+更多信息可以访问 [http://oreilly.com/safari](#http://oreilly.com/safari)。
 
 ## 联系我们
 
+任何对本书的意见和建议都可以通过以下地址来反馈给出版商：
 
+O’Reilly Media, Inc.
+
+1005 Gravenstein Highway North
+
+Sebastopol, CA 95472
+
+800-998-9938 (美国或加拿大)
+
+707-829-0515 (国际或国内)
+
+707-829-0104 (传真)
+
+本书还有一个web网页，我们会列举出相关勘误、示例以及其它的信息。你可以通过这个页面：[http://bit.ly/designing-data-intensive-apps](#http://bit.ly/designing-data-intensive-apps)来访问。
+
+如果想对本书提出建议或咨询技术问题，请发送邮件到邮箱： [bookquestions@oreilly.com](#bookquestions@oreilly.com)。
+
+有关本书的更多信息，课程，议题和新闻，可以访问我们的网站：[http://www.oreilly.com](#http://www.oreilly.com).
+
+Facebook: *http://facebook.com/oreilly*
+
+Twitter: *http://twitter.com/oreillymedia*
+
+YouTube: *http://www.youtube.com/oreillymedia*
 
 ## 鸣谢
 

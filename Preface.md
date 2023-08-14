@@ -104,3 +104,14 @@ YouTube: *http://www.youtube.com/oreillymedia*
 
 ## 鸣谢
 
+本书把大量其它人积累下来的想法和知识结合学术研究和工程实践经验来融合并系统性的概括。在计算机领域，人们往往会被新的事物所吸引，但是我认为我们从以往沉淀下来的技术中汲取知识将具有重大的价值。本书将有超过800多篇的参考文献，包括论文，博文，演讲以及文档等，他们对我来说都是非常宝贵的学习资源。在此，我也很感谢这些相关文献的作者能够无私的分享他们的成果。
+
+我也从和他们的交谈中受益颇丰，感谢这么多朋友能够花时间来与我共同探讨问题，交换想法，并耐心讲解，在此，特别要感谢：Joe Adler, Ross Anderson, Peter Bailis, Márton Balassi, Alastair Beresford, Mark Callaghan, Mat Clayton, Patrick Collison, Sean Cribbs, Shirshanka Das, Niklas Ekström, Stephan Ewen, Alan Fekete, Gyula Fóra,Camille Fournier, Andres Freund, John Garbutt, Seth Gilbert, Tom Haggett, Pat Helland, Joe Hellerstein, Jakob Homan, Heidi Howard, John Hugg, Julian Hyde, Conrad Irwin, Evan Jones, Flavio Junqueira, Jessica Kerr, Kyle Kingsbury, Jay Kreps, Carl Lerche, Nicolas Liochon, Steve Loughran, Lee Mallabone,Nathan Marz, CaitieMcCaffrey, Josie McLellan, Christopher Meiklejohn, Ian Meyers, Neha Narkhede,Neha Narula, Cathy O’Neil, Onora O’Neill, Ludovic Orban, Zoran Perkov, Julia Powles, Chris Riccomini, Henry Robinson, David Rosenthal, Jennifer Rullmann,Matthew Sackman, Martin Scholl, Amit Sela, Gwen Shapira, Greg Spurrier, Sam Stokes, Ben Stopford, Tom Stuart, Diana Vasile, Rahul Vohra, Pete Warden, Brett Wooldridge.
+
+另外还有一些朋友对本书进行审阅和反馈，这对我本书的写作也是无比宝贵的。对于这些贡献，我要感谢Raul Agepati, Tyler Akidau, Mattias Andersson, Sasha Baranov, Veena Basavaraj,David Beyer, Jim Brikman, Paul Carey, Raul Castro Fernandez, Joseph Chow, Derek Elkins, Sam Elliott, Alexander Gallego, Mark Grover, Stu Halloway, Heidi Howard,Nicola Kleppmann, Stefan Kruppa, Bjorn Madsen, Sander Mak, Stefan Podkowinski, Phil Potter, Hamid Ramazani, Sam Stokes, Ben Summers。当然，对于本书存在的错误和问题，本人将承担一切责任。
+
+还要特别感谢我的编辑 Marie Beaugureau, Mike Loukides, Ann Spencer, 以及O’Reilly的团队成员，有了他们本书才能能以出版，感谢他们包容我缓慢的写作进度，以及满足我提出的各种要求。感谢 Rachel Head，帮忙为本书找出最精确的用语。感谢Alastair Beresford, Susan Goodhue, Neha Narkhede和 Kevin Scott给了我大量的时间能让我自由写作，以及有时间做一些其它的工作。
+
+特别感谢Shabbir Diwan 和 Edie Freedman，感谢他们为每一章绘制的精美导图，他们这个创造性的想法真的太棒了，这使得本书最终效果更佳酷炫。
+
+最后，我挚爱的家人和朋友，没有你们的支持，我不可能完成这将近4年的写作历程，永远爱你们。

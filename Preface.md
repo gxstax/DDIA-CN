@@ -72,7 +72,7 @@
 
 会员有权限对超过250家出版社所出版的数千本图书，培训视频，学习途径，交互式教程以及精选视频集免费访问。他们包括O’Reilly媒体，Harvard Business Review，Prentice Hall Professional，Addison-Wesley Professional, Microsoft Press, Sams, Que, Peachpit Press, Adobe, Focal Press, Cisco Press, John Wiley & Sons, Syngress, Morgan Kaufmann, IBM Redbooks, Packt,Adobe Press, FT Press, Apress, Manning, New Riders, McGraw-Hill, Jones & Bartlett等课程技术。
 
-更多信息可以访问 [http://oreilly.com/safari](#http://oreilly.com/safari)。
+更多信息可以访问 [http://oreilly.com/safari](http://oreilly.com/safari)。
 
 ## 联系我们
 
@@ -90,11 +90,11 @@ Sebastopol, CA 95472
 
 707-829-0104 (传真)
 
-本书还有一个web网页，我们会列举出相关勘误、示例以及其它的信息。你可以通过这个页面：[http://bit.ly/designing-data-intensive-apps](#http://bit.ly/designing-data-intensive-apps)来访问。
+本书还有一个web网页，我们会列举出相关勘误、示例以及其它的信息。你可以通过这个页面：[*http://bit.ly/designing-data-intensive-apps*](http://bit.ly/designing-data-intensive-apps)来访问。
 
-如果想对本书提出建议或咨询技术问题，请发送邮件到邮箱： [bookquestions@oreilly.com](#bookquestions@oreilly.com)。
+如果想对本书提出建议或咨询技术问题，请发送邮件到邮箱： [*bookquestions@oreilly.com*](bookquestions@oreilly.com)。
 
-有关本书的更多信息，课程，议题和新闻，可以访问我们的网站：[http://www.oreilly.com](#http://www.oreilly.com).
+有关本书的更多信息，课程，议题和新闻，可以访问我们的网站：[*http://www.oreilly.com*](http://www.oreilly.com).
 
 Facebook: *http://facebook.com/oreilly*
 

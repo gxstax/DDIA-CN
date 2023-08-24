@@ -13,7 +13,7 @@
     * [第七章：事务](part2/chapter7.md)
     * [第八章：分布式系统面临的的问题](part2/chapter8.md)
     * [第九章：一致性](part2/chapter9.md)
-* [第三部分：数据加工](part3/README.md)
+* [第三部分：派生数据](part3/README.md)
     * [第十章：批处理](part3/chapter10.md)
     * [第十一章：流处理](part3/chapter11.md)
     * [第十二章：数据系统前景](part3/chapter12.md)

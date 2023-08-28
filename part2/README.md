@@ -22,13 +22,13 @@
 
 ## 应对更高负载的扩展
 
-如果你只是用来应对高负载，那么最简单的办法就是选用一台更加强劲的机器（这种方式也被称为**垂直扩展**或**升级升级**）。多个cpu，多块内存，多个磁盘可以在同一个操作系统下结合使用，快速的连接设备使得cpu可以访问内存或磁盘的任何位置。在这种「共享内存架构」（*shared-memory architecture*）下，所有的组建都可以看作是一台机器[[1](#part2References1)]。[^ In a large machine, although any CPU can access any part of memory, some banks of memory are closer toone CPU than to others (this is called *nonuniform memory access*, or NUMA ). To make efficient use of this architecture, the processing needs to be broken down so that each CPU mostly accesses memory that isnearby—which means that partitioning is still required, even when ostensibly running on one machine.]
+如果你只是用来应对高负载，那么最简单的办法就是选用一台更加强劲的机器（这种方式也被称为**垂直扩展**或**升级升级**）。多个cpu，多块内存，多个磁盘可以在同一个操作系统下结合使用，快速的连接设备使得cpu可以访问内存或磁盘的任何位置。在这种「共享内存架构」（*shared-memory architecture*）下，所有的组建都可以看作是一台机器[[1](#part2References1)]。[^i]
 
 共享内存的方式存在的一个问题就是，它的花费开销增长曲线比线性架构增长的更快：一个拥有两倍多的CPU，两倍多的内存以及两倍多磁盘容量的机器，它的开销比起单倍的机器通常要多于两倍。
 
 共享内存体系架构所提供的「**容错性**」是有限的—高端的机器一般都支持热插拔组建（你可以在不关闭电源的情况下来更换硬盘、内存、甚至是CPU）—但这也仅限于在同一地理位置范围内。
 
-另外一种是共享磁盘架构，它使用多台具有独立CPU和内存的机器，但是存储数据的磁盘阵列是被所有机器共享的，他们之间通过快速网络来进行连接。[^ii. *Network Attached Storage* (NAS) or *Storage Area Network* (SAN).]这种架构适用于一些数据仓库场景，但是争用和锁开销限制了共享磁盘架构的可伸缩性[[2](#part2References2)]。
+另外一种是共享磁盘架构，它使用多台具有独立CPU和内存的机器，但是存储数据的磁盘阵列是被所有机器共享的，他们之间通过快速网络来进行连接。[^ii]这种架构适用于一些数据仓库场景，但是争用和锁开销限制了共享磁盘架构的可伸缩性[[2](#part2References2)]。
 
 ### 无共享架构
 
@@ -39,6 +39,11 @@
 在本书的这一部分，我们关注于「**无共享架构**」，尽管它可能不是我们所有应用场景中的最佳选择，但是对于我们，作为一个应用开发者来说是很值得我们去审慎对待的。如果你的数据是跨多个节点分区部署的，你要意识到数据库在这中间所做的规范以及权衡性措施—数据库不会平白无故的就帮助你完成这些事情。
 
 虽然分布式的「**无共享架构**」有很多优点，但它同时也增加了应用的复杂性，有时候甚至会限制你所使用数据模型的表达能力。有时候，一个简单的单线程程序可能拥有比100核CPU的集群更好的性能表现[[4](#part2References4)]。不过，「无共享系统」的能力还是非常强大的。我们将在接下来的几章来详细介绍数据在分布式存储时可能遇到的问题。
+
+---
+
+[^i]:In a large machine, although any CPU can access any part of memory, some banks of memory are closer toone CPU than to others (this is called *nonuniform memory access*, or NUMA ). To make efficient use of this architecture, the processing needs to be broken down so that each CPU mostly accesses memory that isnearby—which means that partitioning is still required, even when ostensibly running on one machine.
+[^ii]:*Network Attached Storage* (NAS) or *Storage Area Network* (SAN).
 
 ### 副本/分区
 

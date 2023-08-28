@@ -8,7 +8,7 @@
     * [第三章：存储与检索](part1/chapter3.md)
     * [第四章：编码及演进](part1/chapter4.md)
 * [第二部分：分布式数据](part2/README.md)
-    * [第五章：副本](part2/chapter5.md)
+    * [第五章：备份](part2/chapter5.md)
     * [第六章：分区](part2/chapter6.md)
     * [第七章：事务](part2/chapter7.md)
     * [第八章：分布式系统面临的的问题](part2/chapter8.md)

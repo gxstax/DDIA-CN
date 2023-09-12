@@ -167,33 +167,54 @@ MySQL在5.1版本之前使用的是基于语句的复制方案。由于这种方
 
 在[[第三章](../part1/chapter3.md)]中，我么讨论了存储引擎是怎么在磁盘中存储数据的，我们发现通常每个写操作都是以追加写的形式记录到日志中的：
 
-* 
+* 对于日志结构存储引擎（参见：[SSTables和LSM-Trees](../part1/chapter3.md#SSTables和LSM-Trees)）,日志是主要的存储方式。后台进程会对日志段进行压缩和回收。
+* 对于采用覆盖写磁盘的B-tree（参见：[B-Trees](../part1/chapter3.md#B-Trees)）结构,每次写操作之前都会预先写入日志，如果系统发生崩溃，通过索引就能快速的恢复到和此前的一致性状态。
+
+不管是哪种情况，所有对数据库写入的字节序列都会被记录到日志中。因此可以使用完全相同的日志在另外一个节点上构建新的副本（除了将日志写入磁盘意外，主节点还可以通过网络将其发送给从节点）。
+
+当从节点处理完这些日志后，那么它将拥有和主节点完全一致的数据结构内容。
+
+像PostgreSQL，Oracle和其它一些系统都支持这种复制方式[[16](#ch5References16)]。但是它主要的缺点在于日志描述的数据非常底层：WAL日志通常包含的是哪些磁盘中的block中的哪些字节发生的变动，这便会造成复制机制和存储引擎之间的耦合。如果数据库的数据存储格式发生变动，那么同一个份数据日志将不支持在不同版本的主节点和从节点之间运行。
+
+这看起来只是一个细微实现的变化，但却会对维护产生较大的影响。如果我们采用的复制协议允许从节点可以使用与主节点不同的软件版本，那么你就可以先升级你的从节点系统版本，然后在执行故障转移是其中一个升级后的从节点变为新的主节点，从而实现不停机升级。但是如果复制协议在不同的系统版本之间不能兼容，那么升级就必须要停机处理了。
+
+#### 基于行的逻辑日志复制
+
+另外一种方式是复制日志和存储引擎采用不同的日志格式，这样就可以使得复制日志和存储引擎之间解耦。这种用以和存储引擎（物理上的）数据表示相区分的复制日志称之为「**逻辑日志**」。
+
+关系型数据库的逻辑日志通常是对数据库表中行维度的一系列写操作的记录描述：
+
+* 对于插入行，日志会记录所有列的值。
+* 对于删除行，日志中记录能够唯一标识出被删除行的信息。通常情况下都是主键，但如果表中没有主键，那么就需要记录被删除的所有列的值。
+* 对于更新行，日志也要记录能够唯一标识出被更新行的所有信息以及每一列更新的新值（或者被更新列的最新值）。
+
+如果一个更新多行的事务，除了会产生上述多条这样的日志记录外，还会跟上一条标记该事务已经提交的记录。MySQL的binlog日志(当配置了基于行复制格式时)就是使用这种方式[[17](ch5References17)]。
+
+正是由于做到逻辑日志和内部存储引擎的解耦，我们就能很容易的做到向后兼容性，从而使得主节点和从节点可以运行不同版本的系统，甚至是不同的存储引擎。
+
+另外逻辑日志也更容易被外部应用系统解析。如果你想要把内容发送到外部系统（例如一个用于离线分析的数据仓库），或者是构建自定义索引和缓存，就显得特别有优势了。这种技术也被称之为「**变更数据捕获-*change data capture***」，我们在[第11章](../part3/chapter11.md)中继续讨论。
+
+#### 基于触发器的复制
+
+到目前为止，我们所讨论的所有复制机制都是由数据库系统自行完成的，这其中并不涉及任何的应用程序代码。这在很多通用场景中都是我们乐意看到的情况，但是也会存在一些场景需要我们我们的系统具备更高的灵活性。例如你只想备份数据的一部分数据，或者想把一种数据库中的数据备份到另外一种数据库中，又或者你需要冲突解决逻辑（参见：[写冲突处理](#写冲突处理)），这时候你必须要把复制交由应用层来实现。
+
+像Oracle的GoldenGate[[19](#ch5References19)]这样的工具，可以通过读取数据库日志的方式让应用程序获取到数据变更。另外就是可以利用关系性数据库本身的特性：「**触发器-*triggers***」和「**储存过程-*stored procedures***」。触发器支持注册应用层代码到数据库系统中，当有数据变更（写事务）发生时系统可以自动的执行你注册的代码。我们就可以利用这个触发器把变更的日志信息记录到一个单独的表中，然后让外部的处理程序读取该表，来实现我们在应用层的自定义逻辑，或者把变更的数据备份到其它的系统中。Oracle的Databus[[20](#References20)]和Postgres的Bucardo[[21](#References21)]就是这种技术的典型代表。
+
+不过，基于触发器的复制通常比其它形式的复制方式开销更高，也比数据库内置的复制更容易出错。但是，它所拥有的高度灵活性使得他仍然又它的用武之地。
+
+## <a id="ReplicationLag">延迟同步问题</a> 
+
+容忍节点故障仅仅是复制的其中一个原因。正如[第二部分](READEME.md)大纲所介绍的，其它原因还包括「可扩展性」（想比单台机器处理更多的请求）和「低延迟性」（将服务部署在物理地址离用户更近的地方）。
+
+「**主从复制**」要求所有的写请求都经过主节点，但是只读查询则可以通过任一副本来进行。对于读多写少（Web应用模式）的工作模式来说，这是一个不错的选择：创建多个从节点，把读请求分发到这些从节点上。减轻主节点工作负载同时又能实现用户的就近访问。
 
 
 
+Being able to tolerate node failures is just one reason for wanting replication. As mentioned in the introduction to Part II, other reasons are scalability (processing more requests than a single machine can handle) and latency (placing replicas geographically closer to users).
 
+Leader-based replication requires all writes to go through a single node, but read only queries can go to any replica. For workloads that consist of mostly reads and only a small percentage of writes (a common pattern on the web), there is an attractive option: create many followers, and distribute the read requests across those followers. This removes load from the leader and allows read requests to be served by nearby replicas.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+In this *read-scaling* architecture, you can increase the capacity for serving read-only requests simply by adding more followers. However, this approach only realistically works with asynchronous replication—if you tried to synchronously replicate to all followers, a single node failure or network outage would make the entire system
 
 
 

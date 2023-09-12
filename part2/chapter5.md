@@ -80,7 +80,9 @@ AlwaysOn Availability Groups [[3](#ch5References3)]）等关系型数据库内�
 
 ---
 
-### 配置新的追随者
+
+
+### 配置新的从节点
 
 当你需要增加副本的数量或者替换异常的节点时，就需要考虑增加新的从节点。那我们又如何来保证新加入的从节点数据和主节点的数据保持一致的呢？
 
@@ -208,25 +210,39 @@ MySQL在5.1版本之前使用的是基于语句的复制方案。由于这种方
 
 「**主从复制**」要求所有的写请求都经过主节点，但是只读查询则可以通过任一副本来进行。对于读多写少（Web应用模式）的工作模式来说，这是一个不错的选择：创建多个从节点，把读请求分发到这些从节点上。减轻主节点工作负载同时又能实现用户的就近访问。
 
+在这种扩展机制下，你可以仅通过简单的增加从节点就能够达到提高读请求吞吐量的目的。但是这种方法仅适用于异步复制，如果你试图对所有的从节点都采用同步复制的方式，那么一个节点的失效或网络故障就将会导致整个系统不可写。而且，你的节点越多，发生这种状况的概率越高，所以，一个完全同步复制的配置可靠性是非常差的。
+
+但是，如果应用从一个异步同步的副本中读取数据，又可能会因为从节点落后主节点太多而导致读取到的数据是过时的。这就会导致数据库中出现明显的不一致现象：如果你在同一时间分别在主节点和从节点执行相同的查询，你可能会得到不同的结果，因为并不是所有的写操作都反应到了从节点上。不过这个不一致现象也只是暂时的：如果你停止写入等待一会，从节点最终会赶上并与主节点数据一致。这个效应就是我们所说的「**最终一致性-*eventual consistency***」[[22](#ch5References22),[23](#ch5References23)]。[^iii]
+
+”最终-eventually“一词其实是一个模糊的概念：通常，一个副本的落后时间并没有一个限制。通常，主节点和从节点完成同一个写操作之间的时间延迟（**同步延迟-*replication lag***）可能不足一秒，像这样的段时间延迟，通常对我们的服务是无感的。但是，如果系统已经达到负载极限或者网络出现问题，那么延迟时间便会很容易的达到几秒甚至是几分钟。
+
+当延迟时间过长时，由它所带来的不一致问题就不仅仅是理论层面的问题了，而是它实实在在的对我们的应用产生影响。在本节中，我们会重点介绍三种「**同步延迟**」的问题，并给出相应的解决方案，
+
+---
+
+[^iii]:  「最终一致性」一词最早由Douglas Terry 提出. [[24](#ch5References24)]，后来经由 Werner Vogels[[22](##ch5References22)]而普及，并称为很多NoSQL项目的标志性口号。但事实上，采用异步复制的关系性数据库同样具有该特性。
 
 
-Being able to tolerate node failures is just one reason for wanting replication. As mentioned in the introduction to Part II, other reasons are scalability (processing more requests than a single machine can handle) and latency (placing replicas geographically closer to users).
 
-Leader-based replication requires all writes to go through a single node, but read only queries can go to any replica. For workloads that consist of mostly reads and only a small percentage of writes (a common pattern on the web), there is an attractive option: create many followers, and distribute the read requests across those followers. This removes load from the leader and allows read requests to be served by nearby replicas.
+### 读己写
 
-In this *read-scaling* architecture, you can increase the capacity for serving read-only requests simply by adding more followers. However, this approach only realistically works with asynchronous replication—if you tried to synchronously replicate to all followers, a single node failure or network outage would make the entire system
+很多应用能够使得用户提交一部分数据后，接下来便可以看到他们之前已经提交的数据。这可能存在于用户数据库或者对一个主题帖子的评论中。当新的数据被提交后，它必须先发送到主节点，但是当用户访问这些数据时，它可能是从某一从节点读取的。尤其是在数据读取密集型应用场景中更是如此。
 
-
-
-
-
-
+如[<font color="#A7535A">**图5-3**</font>](#figure5-3)所示，在异步复制中存在这样一个问题：如果用户是在写后不久便访问该数据，那么新写入的数据可能还没来得及同步到从节点。对于用户来说，看起来好像他提交的数据丢失了，这对用户来说显然是不可接受的。
 
 ![](../img/figure5-3.png)
 
-<a id="figure5-3"><font color="#A7535A">**图5-3.**</font></a> **用户写之后紧接着伴随着一个读操作，为了防止这种异常现象，我们需要写后读一致性。**
+<a id="figure5-3"><font color="#A7535A">**图5-3.**</font></a> **用户写之后紧接着伴随着一个读操作，为了防止这种异常现象，我们就需要「写后读一致性」。**
 
 在这种场景下，我们就需要「**写后读一致性-*read-after-write consistency***」，也被称作「**读写一致性-*read-your-writes consistency***」[[24](#ch5References4)]。这样就能够保证用户每次刷新页面，都能够看到他们最新提交的内容。不保证其它用户操作的一致性：其它用户的更新操作可能会到晚些时候才能看到。但是，它保证了用户自己的输入一定能够正确的保存。
+
+那么基于「**主从复制**」的系统中怎么来实现「**写后读一致性**」的呢？其实有很多可行性方案，下面来列举一二：
+
+* 当用户读取哪些可能会被修改到的数据时，则从主节点读取，否则，就从从节点读取。这就要求我们需要一种方法来知道你查询的数据是否有可能会被修改到。例如社交网站的用户个人信息通常只能狗被用户自己编辑，而其他人时无权限修改的。所以，我们就可以简单的规定：总是从主节点查询自己的配置信息，而其他用户的配置信息则从从节点读取。
+* 如果应用的大部分数据都有可能会被修改到，那么上述方法可能不太适用，因为这样就会导致大部分的数据都需要从主节点来读取（这会破坏读操作的可扩展性）。因此，我们就可能会考虑其他的方案来决定是否从主节点读取数据。例如，你可以追踪最后一次更新数据的时间，在最后一次更新后的一分钟内，我们都让它从主节点读取。你也可以监控从节点同步的滞后时间值，来避免从滞后大于一分钟的从节点读取数据。
+* 客户端可以记录最近一次更新的时间戳，
+
+
 
 
 

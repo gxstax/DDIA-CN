@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>第九章：一致性 · DDIA（ZH-CN）</title>
+        <title>第十一章：流处理 · DDIA（ZH-CN）</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.3">
@@ -65,10 +65,10 @@
     <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="../part3/" />
+    <link rel="next" href="chapter12.html" />
     
     
-    <link rel="prev" href="chapter8.html" />
+    <link rel="prev" href="chapter10.html" />
     
 
     </head>
@@ -194,9 +194,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4" data-path="./">
+        <li class="chapter " data-level="1.4" data-path="../part2/">
             
-                <a href="./">
+                <a href="../part2/">
             
                     
                     第二部分：分布式数据
@@ -208,9 +208,9 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.4.1" data-path="chapter5.html">
+        <li class="chapter " data-level="1.4.1" data-path="../part2/chapter5.html">
             
-                <a href="chapter5.html">
+                <a href="../part2/chapter5.html">
             
                     
                     第五章：备份
@@ -221,9 +221,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.2" data-path="chapter6.html">
+        <li class="chapter " data-level="1.4.2" data-path="../part2/chapter6.html">
             
-                <a href="chapter6.html">
+                <a href="../part2/chapter6.html">
             
                     
                     第六章：分区
@@ -234,9 +234,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.3" data-path="chapter7.html">
+        <li class="chapter " data-level="1.4.3" data-path="../part2/chapter7.html">
             
-                <a href="chapter7.html">
+                <a href="../part2/chapter7.html">
             
                     
                     第七章：事务
@@ -247,9 +247,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.4.4" data-path="chapter8.html">
+        <li class="chapter " data-level="1.4.4" data-path="../part2/chapter8.html">
             
-                <a href="chapter8.html">
+                <a href="../part2/chapter8.html">
             
                     
                     第八章：分布式系统面临的的问题
@@ -260,9 +260,9 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.4.5" data-path="chapter9.html">
+        <li class="chapter " data-level="1.4.5" data-path="../part2/chapter9.html">
             
-                <a href="chapter9.html">
+                <a href="../part2/chapter9.html">
             
                     
                     第九章：一致性
@@ -278,9 +278,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5" data-path="../part3/">
+        <li class="chapter " data-level="1.5" data-path="./">
             
-                <a href="../part3/">
+                <a href="./">
             
                     
                     第三部分：派生数据
@@ -292,9 +292,9 @@
             <ul class="articles">
                 
     
-        <li class="chapter " data-level="1.5.1" data-path="../part3/chapter10.html">
+        <li class="chapter " data-level="1.5.1" data-path="chapter10.html">
             
-                <a href="../part3/chapter10.html">
+                <a href="chapter10.html">
             
                     
                     第十章：批处理
@@ -305,9 +305,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5.2" data-path="../part3/chapter11.html">
+        <li class="chapter active" data-level="1.5.2" data-path="chapter11.html">
             
-                <a href="../part3/chapter11.html">
+                <a href="chapter11.html">
             
                     
                     第十一章：流处理
@@ -318,9 +318,9 @@
             
         </li>
     
-        <li class="chapter " data-level="1.5.3" data-path="../part3/chapter12.html">
+        <li class="chapter " data-level="1.5.3" data-path="chapter12.html">
             
-                <a href="../part3/chapter12.html">
+                <a href="chapter12.html">
             
                     
                     第十二章：数据系统前景
@@ -405,7 +405,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href=".." >第九章：一致性</a>
+        <a href=".." >第十一章：流处理</a>
     </h1>
 </div>
 
@@ -420,17 +420,12 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <p><img src="../img/chapter9.png" alt="ch9"></p>
-<h1 id="&#x7B2C;&#x4E5D;&#x7AE0;&#xFF1A;&#x4E00;&#x81F4;&#x6027;">&#x7B2C;&#x4E5D;&#x7AE0;&#xFF1A;&#x4E00;&#x81F4;&#x6027;</h1>
+                                <p><img src="../img/chapter11.png" alt="ch11"></p>
+<h1 id="&#x7B2C;&#x5341;&#x4E00;&#x7AE0;&#xFF1A;&#x6D41;&#x5904;&#x7406;">&#x7B2C;&#x5341;&#x4E00;&#x7AE0;&#xFF1A;&#x6D41;&#x5904;&#x7406;</h1>
 <blockquote>
-<p>&#x82DF;&#x4E14;&#x5077;&#x751F;&#x8FD8;&#x662F;&#x820D;&#x751F;&#x53D6;&#x4E49;&#xFF1F;</p>
-<p>&#x2014;Jay Kreps,&#x53D6;&#x81EA; <em>Kafka</em> &#x548C; <em>Jepsen</em>&#x7684;&#x7B14;&#x8BB0;&#xFF08;2013&#xFF09;</p>
+<p>&#x590D;&#x6742;&#x7684;&#x7CFB;&#x7EDF;&#x90FD;&#x662F;&#x4ECE;&#x7B80;&#x5355;&#x7684;&#x7CFB;&#x7EDF;&#x6F14;&#x8FDB;&#x800C;&#x6765;&#x7684;&#xFF0C;&#x4ECE;&#x53E6;&#x4E00;&#x4E2A;&#x89D2;&#x5EA6;&#x6765;&#x8BF4;&#xFF0C;&#x5F00;&#x59CB;&#x5C31;&#x5F88;&#x590D;&#x6742;&#x7684;&#x7CFB;&#x7EDF;&#x662F;&#x6839;&#x672C;&#x4E0D;&#x4F1A;&#x88AB;&#x8BBE;&#x8BA1;&#x51FA;&#x6765;&#x7684;&#x3002;</p>
+<p>&#x2014; &#x7EA6;&#x7FF0;&#xB7;&#x52A0;&#x5C14;, <em>Systemantics</em> (1975)</p>
 </blockquote>
-<h2 id="salfj">salfj</h2>
-<h2 id="asfaf">asfaf</h2>
-<h2 id="adfa">adfa</h2>
-<h2 id="sf">sf</h2>
-<h2 id="&#x7EBF;&#x6027;&#x4E00;&#x81F4;&#x6027;">&#x7EBF;&#x6027;&#x4E00;&#x81F4;&#x6027;</h2>
 
                                 
                                 </section>
@@ -458,12 +453,12 @@
 
             
                 
-                <a href="chapter8.html" class="navigation navigation-prev " aria-label="Previous page: 第八章：分布式系统面临的的问题">
+                <a href="chapter10.html" class="navigation navigation-prev " aria-label="Previous page: 第十章：批处理">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="../part3/" class="navigation navigation-next " aria-label="Next page: 第三部分：派生数据">
+                <a href="chapter12.html" class="navigation navigation-next " aria-label="Next page: 第十二章：数据系统前景">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -474,7 +469,7 @@
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"第九章：一致性","level":"1.4.5","depth":2,"next":{"title":"第三部分：派生数据","level":"1.5","depth":1,"path":"part3/README.md","ref":"part3/README.md","articles":[{"title":"第十章：批处理","level":"1.5.1","depth":2,"path":"part3/chapter10.md","ref":"part3/chapter10.md","articles":[]},{"title":"第十一章：流处理","level":"1.5.2","depth":2,"path":"part3/chapter11.md","ref":"part3/chapter11.md","articles":[]},{"title":"第十二章：数据系统前景","level":"1.5.3","depth":2,"path":"part3/chapter12.md","ref":"part3/chapter12.md","articles":[]}]},"previous":{"title":"第八章：分布式系统面临的的问题","level":"1.4.4","depth":2,"path":"part2/chapter8.md","ref":"part2/chapter8.md","articles":[]},"dir":"ltr"},"config":{"plugins":["github","expandable-chapters","back-to-top-button","livereload"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"github":{"url":"https://github.com/gxstax"},"livereload":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"back-to-top-button":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"expandable-chapters":{}},"theme":"default","author":"马以","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"DDIA（ZH-CN）","language":"zh-hans","gitbook":"*","description":"DDIA中文翻译"},"file":{"path":"part2/chapter9.md","mtime":"2023-08-04T04:54:38.752Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2023-09-14T00:42:07.558Z"},"basePath":"..","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"第十一章：流处理","level":"1.5.2","depth":2,"next":{"title":"第十二章：数据系统前景","level":"1.5.3","depth":2,"path":"part3/chapter12.md","ref":"part3/chapter12.md","articles":[]},"previous":{"title":"第十章：批处理","level":"1.5.1","depth":2,"path":"part3/chapter10.md","ref":"part3/chapter10.md","articles":[]},"dir":"ltr"},"config":{"plugins":["github","expandable-chapters","back-to-top-button","livereload"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"github":{"url":"https://github.com/gxstax"},"livereload":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"back-to-top-button":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"expandable-chapters":{}},"theme":"default","author":"马以","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"DDIA（ZH-CN）","language":"zh-hans","gitbook":"*","description":"DDIA中文翻译"},"file":{"path":"part3/chapter11.md","mtime":"2023-08-04T04:54:38.752Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2023-09-14T00:42:07.558Z"},"basePath":"..","book":{"language":""}});
         });
     </script>
 </div>

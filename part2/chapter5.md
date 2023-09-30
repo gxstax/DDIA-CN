@@ -433,6 +433,24 @@ MySQL在5.1版本之前使用的是基于语句的复制方案。由于这种方
 
 <center><font face="宋体" size="4" color=black>自动冲突解决</font></center>
 
+<font size=2>随着冲突解决规则变得越来越复杂，用户写的处理冲突逻辑也越来越容易出错。其中亚马逊的一个用来处理冲突的逻辑造成的影响便经常被提及：他们的冲突处理逻辑会保留所有添加到购物车的商品，但是未对移除的商品做处理。这样用户就时常会看到他们先前已经移除出购物车的商品[[37](#ch5References37)]。</font>
+
+<font size=2>在自动解决冲突中，还有一些在处理并发数据修改时产生的一些有意思的研究。下面是一些比较值得关注的几点研究：</font>
+
+* <font size=2>**无冲突复制数据类型-*Conflict-free replicated datatypes***（CRDTs）[[32](#ch5References32),[38](#ch5References38)]是set集合，map集合，有序列表，计数器等数据结构家庭成员中的一个。它支持多用户的并发编辑，应能够以一种合理的方式自动解决产生的冲突。一部分**无冲突复制数据类型**已经在Riak 2.0[[39](#ch5References39),[40](#ch5References40)] 中实现。</font>
+* <font size=2>**可合并的持久化数据结构-*Mergeable persistent data structures***[[41](#ch5References41)]显式的跟踪历史变更记录，类似Git版本控制系统，并采用三向合并功能（CRDTs采用的双向合并）。</font>
+* <font size=2>**OT协同算法-*Operational transformation*** [[42](#ch5References42)]是Etherpad [[30](#ch5References30)] 和  Google Docs [[31](#ch5References31)] 背后实现冲突解决的算法。他是专门为一些如构成文档的字符列表这种有序集合而专门设计的。</font>
+
+<font size=2>虽然说这些算法在数据库中的实现还很稚嫩，但是在未来他们会被完整的应用到更多的可复制数据系统中。自动冲突处理也使得应用程序在多主节点复制的处理中变得更加简单。</font>
+
+---
+
+#### 冲突是什么
+
+有些冲突是很明显的。在 [<font color="#A7535A">**图5-7**</font>](#figure5-7) 的例子中，两个写操作同时对同一个记录中的相同字段做修改，并把他们设置为不同的两个值，毫无疑问，这就是一个冲突。
+
+
+
 
 
 ### 多领导者副本拓扑

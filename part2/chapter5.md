@@ -697,3 +697,239 @@ Dynamo 风格数据库允许多个客户端并发的对同一个key进行写入�
 ![图5-14](../img/figure5-14.png)
 
 <a id="figure5-14"><font color="#A7535A">**图5-14.**</font></a> 描述<a id="figure5-13"><font color="#A7535A">**图5-13.**</font></a>中的因果关系图。
+
+需要注意的是服务器可以判断是否两个操作是并发主要依赖于他们的版本号—它无需描述它本身的值（所以这个值可以是任何数据结构）。算法的大致流程如下：
+
+* 服务器为每一个主键维护一个版本号，每一次写入该版本号都会自动加1，并且把新的版本号和值一起存储起来。
+* 当客户端读取该key值时，服务端返回所有未被覆盖的值，并返回最新的版本号。并且要求客户端在写操作之前必须先读。
+* 当客户端做写操作时，它必须把它之前读取到的所有的值合并在一起并且附带上版本号。（写请求的返回值也可以像读操作一样返回所有当前的值，这样我们就可以像购物车的例子一样能够追踪服务端的写入操作。）
+* 当服务端接收到带有指定版本号的写入操作时，服务端便可以覆盖掉该版本以及比该版本号小的所有值（因为这时候服务端知道旧的值已经被合并到新值中了），但是对于版本号大于指定版本号的值要保持不变（因为这些值与该请求传入的值可能有并发关系）。
+
+当一个写入操作包含之前读取到的版本号时，就表明我们当前是基于之前的值来做修改的。当你的写操作不包含任何版本号时，那说明该写入操作和其它所有写入都存在并发关系，所以它就不能覆盖任何值—它仅仅作为下一次读取操作的一个返回值而已。
+
+#### 合并并发写入值
+
+这个算法可以保证数据不会丢失，但是需要客户端做一些额外的工作：就是如果发生的并发操作，客户端必须清理掉旧值，并把他们合并到当前并发写入的值当中。在Riak中这些并发值被称为“兄弟”关系。
+
+合并“兄弟”关系的值本质上就是我们之前讨论过的多主复制中的冲突解决问题（参见：[写冲突处理](#写冲突处理)）。一个最简单的方法就是只根据版本号或者时间戳来确定最终的值（最后写入胜利），但这就意味着会有数据丢失。所以，就可能就需要你在业务代码中做一些额外的处理。
+
+在购物车的例子中，合并并发值的一个合理方法就是将他们合并。在 [<font color="#A7535A">**图5-14**</font>](#figure5-14) 中，这两个“兄弟”关系的值最终是【牛奶，面粉，鸡蛋，培根】和【鸡蛋，牛奶，火腿】；值得注意的是，【牛奶，鸡蛋】即使只写入了一次，但却在这两个值中都出现。所以，我们最终的合并结果是去掉重复值的【牛奶，面粉，鸡蛋，培根，火腿】。
+
+但是，如果你想要支持从购物车移除商品，而不仅仅是增加，那么合并值就可能会造成错误的结果：如果你合并的两个购物车中的商品，其中某一个商品只在其中一个购物车中被移除掉了，这时候你会发现，原先移除的商品又重新出现在了合并后的购物车中[[37](#ch5Refrences37)]。为了防止这个问题，当商品从购物车移除掉的时候就不能简单的把数据从数据库中删除掉。为了防止这种问题，商品在从购物车移除掉的时候就不能简单的就把它从数据中删除掉。而是需要系统给他一个合适的版本号，在合并购物车时可以用它来表明该项目是已经被移除掉的。这种删除标识一般称之为“墓碑”（我们在之前[第三章](../part1/chapter3.md)的[哈希索引](#哈希索引)中提到过。）
+
+考虑到在应用代码层面进行合并会比较复杂且容易出错，因此可以设计一些专门的数据结构来自动合并，例如，Riak支持为被称为CRDT的一系列数据结构[[38](#References38),[39](#References39),[55](#ch5References55)] (参见：[自动冲突解决](#自动冲突解决))，以合理的方式搞笑自动合并，包括支持删除标识。
+
+#### 版本矢量
+
+在<a id="figure5-13"><font color="#A7535A">**图5-13**</font></a>中的示例中，只有一个单副本。那么在无主多副本的情况下，算法又有什么变化呢？
+
+<a id="figure5-13"><font color="#A7535A">**图5-13**</font></a>使用单一的版本号来描述各个操作之间的依赖关系，但是这并不能满足在多个副本同时接受写请求的场景。所以，我们必须在每个副本中的每一个key都设置一个版本号。在处理写请请求时，副本之间单独维护他们自己的版本号，并且追踪其它副本的版本号。这些信息能表明那些信息需要被覆盖，哪些信息需要以兄弟关系进行保留。
+
+副本中所有这些被标记的版本号我们称之为**「版本矢量」**[[56](#ch5References56)]。由这种思路衍生出的机制如今仍在使用，这其中最有趣的当属Riak2.0[[58](#ch5References58),[59](#ch5References59)]中的「虚线版本矢量」。我们在这里没有办法深入到它具体的细节中，但是实现原理大体和我们的购物车例子类似。
+
+就像<a id="figure5-13"><font color="#A7535A">**图5-13**</font></a>中的版本号，当客户端读取的时候，版本矢量会发送给客户端，但是在后续写入的过程中，需要把版本矢量信息再次写回到数据库中。（Risk把版本矢量编码为一个称之为因果上下文的字符串。）版本矢量也使得数据库在并发写入时是该覆盖还是该丢弃称为可能。
+
+另外，在如同在单副本的例子中一样，应用程序可能仍然需要执行合并操作。版本矢量可以保证从一个副本读取的写入到另外一个副本中是安全的，虽然这些值可能会导致在其它副本中衍生出新的“兄弟”值，但至少不会发生数据丢失以及能够正确的处理并发写入问题。
+
+---
+
+<center><font face="宋体" size="4" color=black>版本矢量和矢量时钟</font></center>
+
+<font face="幼圆" size="2" color=black>版本矢量有时候也被称为矢量时钟，但是他们之间并不是完全相同。他们之间存在一些细微的差异点，详细信息可以参阅相关文献[[57](#ch5References57),[60](#ch5References60),[61](#ch5References61)]。简而言之，当需要比较两个副本之间的状态时，需要用到的是版本矢量。</font>
+
+---
+
+
+
+## 小结
+
+本章我们详细讨论了副本相关的话题。副本机制主要作用的用途有以下几点：
+
+* **高可用性**
+
+  即使某台机器（或几台，或某个数据中心）宕机，依然能够保证系统的运行。
+
+* **容错性**
+
+  当发生网络故障时，保证应用依然能继续工作。
+
+* **低延时性**
+
+  将数据放到离用户更近的地方，从而实现更快的交互。
+
+* **可扩展性**
+
+  通过使用多个副本提供读取能力，从而使得读取操作达到更高的吞吐量。
+
+为了达成这些小目标，我们在多台机器上保存多份相同的数据副本，从而引发了诸多棘手的问题。他需要我们仔细的考量由于并发所导致的一切可能出错的问题，并且能够处理这些问题。至少，我们能够处理节点不好用以及网络故障问题（这些甚至都不包括诸如由软件bug所引发的数据损坏问题）。
+
+我们讨论了三种主要的复制策略：
+
+* **主从复制**
+
+  客户端的所有写操作都发送给一个客户端（主节点），然后由该节点把数据的变更事件发送给其它节点（从节点）。读操作可以在任何节点执行，但是在从节点执行的操作可能会读取到旧值。
+
+* **多主复制**
+
+  客户端的写操作会发送给一个或多个可以接受写操作的「主节点」上。然后由这些接受到写请求的「主节点」依次把数据变更事件发送到其它的「主节点」和「从节点」。
+
+* **无主复制**
+
+  客户端的写操作会发送到多个节点上，然后读请求也要同时从多个节点上读取，以此来检测和纠正是否读取到的数据是旧数据。
+
+每一种策略都有它的优势和劣势。主从复制以其易于理解和无需关心冲突检测而备受青睐。而在一些容易出现网络中断或者延迟抖动的系统中多主和无主复制会更有优势。其背后的代价都是增加系统的复杂性来保证弱一致性。
+
+系统可以通过同步或异步的方式进行，而一旦发生错误，这两种方式都会对系统产生深远的影响。尽管异步复制对系统的平滑运行比较友好，但是我们必须清楚当复制延迟增加以及服务失败对系统产生的具体影响是什么。当主节点发生故障，我们将一个从节点提升为新的主节点后，最近的提交数据有可能会丢失。
+
+我们分析了由复制延迟所导致的一系列奇怪的异常，并且讨论了在复制延迟情况下一些对应用比较有适用的一致性数据模型：
+
+* 写后读一致性
+
+  用户必须总是能够看到他们自己提交的数据。
+
+* 单调读
+
+  当用户在某一个时间点已经看到部分数据后，在其后的时间点他们不应当再读取到比该数据更早的数据。
+
+* 一致性前缀
+
+  用户看到的数据要保证因果关系：例如，要以正确的顺序看到一个问题的提问和回答。
+
+最后，我们讨论了在「多主」和「无主」复制策略下所产生的固有问题：因为这两种策略都支持并发写，这就导致冲突的可能性提高。我们还专门探究了一个算法使得数据库可以根据它判断一个操作在另一个操作之前发生，还是它们同时发生。另外我们还涉及到了通过合并并发更新来分析冲突的方法。
+
+在下一章我们会继续研究跨多节点场景的数据分布问题：大数据集合的分区问题。
+
+
+
+---
+
+### 参考文献
+
+[<a id="ch5References1">1</a>] Bruce G. Lindsay, Patricia Griffiths Selinger, C. Galtieri, et al.: “[Notes on Dis‐tributed Databases](https://dominoweb.draco.res.ibm.com/reports/RJ2571.pdf),” IBM Research, Research Report RJ2571(33471), July 1979.
+
+[<a id="ch5References2">2</a>] “[Oracle Active Data Guard Real-Time Data Protection and Availability](http://www.oracle.com/technetwork/database/availability/active-data-guard-wp-12c-1896127.pdf),” Oracle White Paper, June 2013.
+
+[<a id="ch5References3">3</a>] “[AlwaysOn Availability Groups](https://learn.microsoft.com/en-us/sql/database-engine/availability-groups/windows/overview-of-always-on-availability-groups-sql-server?view=sql-server-ver16&redirectedfrom=MSDN),” in *SQL Server Books Online*, Microsoft, 2012.
+
+
+
+[<a id="ch5References4">4</a>] Lin Qiao, Kapil Surlaker, Shirshanka Das, et al.: “[On Brewing Fresh Espresso:LinkedIn’s Distributed Data Serving Platform](http://www.slideshare.net/amywtang/espresso-20952131),” at *ACM International Conference on* *Management of Data* (SIGMOD), June 2013.
+
+[<a id="ch5References5">5</a>] Jun Rao: “[Intra-Cluster Replication for Apache Kafka](http://www.slideshare.net/junrao/kafka-replication-apachecon2013),” at *ApacheCon North America*, February 2013.
+
+[<a id="ch5References6">6</a>] “[Highly Available Queues](https://www.rabbitmq.com/ha.html),” in *RabbitMQ Server Documentation*, Pivotal Software,Inc., 2014.
+
+[<a id="ch5References7">7</a>] Yoshinori Matsunobu: “[Semi-Synchronous Replication at Facebook](http://yoshinorimatsunobu.blogspot.co.uk/2014/04/semi-synchronous-replication-at-facebook.html),” *yoshinori-matsunobu.blogspot.co.uk*, April 1, 2014.
+
+[<a id="ch5References8">8</a>] Robbert van Renesse and Fred B. Schneider: “[Chain Replication for Supporting High Throughput and Availability](https://static.usenix.org/events/osdi04/tech/full_papers/renesse/renesse.pdf),” at *6th USENIX Symposium on Operating System Design and Implementation* (OSDI), December 2004.
+
+[<a id="ch5References9">9</a>] Jeff Terrace and Michael J. Freedman: “[Object Storage on CRAQ: High Throughput Chain Replication for Read-Mostly Workloads](https://www.usenix.org/legacy/event/usenix09/tech/full_papers/terrace/terrace.pdf),” at *USENIX Annual Technical Conference* (ATC), June 2009.
+
+[<a id="ch5References10">10</a>] Brad Calder, Ju Wang, Aaron Ogus, et al.: “[Windows Azure Storage: A Highly Available Cloud Storage Service with Strong Consistency](http://sigops.org/sosp/sosp11/current/2011-Cascais/printable/11-calder.pdf),” at *23rd ACM Symposium on Operating Systems Principles* (SOSP), October 2011.
+
+[<a id="ch5References11">11</a>] Andrew Wang: “[Windows Azure Storage](http://umbrant.com/blog/2016/windows_azure_storage.html),” *umbrant.com*, February 4, 2016.
+
+[<a id="ch5References12">12</a>] “[Percona Xtrabackup - Documentation](https://www.percona.com/doc/percona-xtrabackup/2.1/index.html),” Percona LLC, 2014.
+
+[<a id="ch5References13">13</a>] Jesse Newland: “[GitHub Availability This Week](https://github.com/blog/1261-github-availability-this-week),” *github.com*, September 14,2012.
+
+[<a id="ch5References14">14</a>] Mark Imbriaco: “[Downtime Last Saturday](https://github.blog/2012-12-26-downtime-last-saturday/),” *github.com*, December 26, 2012.
+
+[<a id="ch5References15">15</a>] John Hugg: “‘[All in’ with Determinism for Performance and Testing in Dis‐tributed Systems](https://www.youtube.com/watch?v=gJRj3vJL4wE),” at *Strange Loop*, September 2015.
+
+[<a id="ch5References16">16</a>] Amit Kapila: “[WAL Internals of PostgreSQL](http://www.pgcon.org/2012/schedule/attachments/258_212_Internals%20Of%20PostgreSQL%20Wal.pdf),” at *PostgreSQL Conference*(PGCon), May 2012.
+
+[<a id="ch5References17">17</a>] [*MySQL Internals Manual*](https://dev.mysql.com/doc/dev/mysql-server/latest/). Oracle, 2014.
+
+[<a id="ch5References18">18</a>] Yogeshwer Sharma, Philippe Ajoux, Petchean Ang, et al.: “[Wormhole: Reliable Pub-Sub to Support Geo-Replicated Internet Services](https://www.usenix.org/system/files/conference/nsdi15/nsdi15-paper-sharma.pdf),” at *12th USENIX Symposium on Networked Systems Design and Implementation* (NSDI), May 2015.
+
+[<a id="ch5References19">19</a>] “[Oracle GoldenGate 12c: Real-Time Access to Real-Time Information](https://www.oracle.com/us/products/middleware/data-integration/oracle-goldengate-realtime-access-2031152.pdf),” Oracle White Paper, October 2013.
+
+[<a id="ch5References20">20</a>] Shirshanka Das, Chavdar Botev, Kapil Surlaker, et al.: “[All Aboard the Data‐
+
+bus!](http://www.socc2012.org/s18-das.pdf),” at *ACM Symposium on Cloud Computing* (SoCC), October 2012.
+
+[<a id="ch5References21">21</a>] Greg Sabino Mullane: “[Version 5 of Bucardo Database Replication System](http://blog.endpoint.com/2014/06/bucardo-5-multimaster-postgres-released.html),”*blog.endpoint.com*, June 23, 2014.
+
+[<a id="ch5References22">22</a>] Werner Vogels: “[Eventually Consistent](http://queue.acm.org/detail.cfm?id=1466448),” *ACM Queue*, volume 6, number 6,pages 14–19, October 2008. [doi:10.1145/1466443.1466448](http://dx.doi.org/10.1145/1466443.1466448)
+
+[<a id="ch5References23">23</a>] Douglas B. Terry: “[Replicated Data Consistency Explained Through Baseball](http://research.microsoft.com/pubs/157411/ConsistencyAndBaseballReport.pdf),”Microsoft Research, Technical Report MSR-TR-2011-137, October 2011.
+
+[<a id="ch5References24">24</a>] Douglas B. Terry, Alan J. Demers, Karin Petersen, et al.: “[Session Guarantees for Weakly Consistent Replicated Data](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.71.2269&rep=rep1&type=pdf),” at *3rd International Conference on Parallel and Distributed Information Systems* (PDIS), September 1994. [doi:10.1109/PDIS.1994.331722](https://ieeexplore.ieee.org/document/331722/)
+
+[<a id="ch5References25">25</a>] Terry Pratchett: *Reaper Man: A Discworld Novel*. Victor Gollancz, 1991. ISBN:978-0-575-04979-6
+
+[<a id="ch5References26">26</a>] “[Tungsten Replicator](http://tungsten-replicator.org/),” Continuent, Inc., 2014.
+
+[<a id="ch5References27">27</a>] “[BDR 0.10.0 Documentation](https://bdr-project.org/docs/next/index.html),” The PostgreSQL Global Development Group,*bdr-project.org*, 2015.
+
+[<a id="ch5References28">28</a>] Robert Hodges: “[If You *Must* Deploy Multi-Master Replication, Read This First](http://scale-out-blog.blogspot.co.uk/2012/04/if-you-must-deploy-multi-master.html),” *scale-out-blog.blogspot.co.uk*, March 30, 2012.
+
+[<a id="ch5References29">29</a>] J. Chris Anderson, Jan Lehnardt, and Noah Slater: *CouchDB: The Definitive Guide*. O’Reilly Media, 2010. ISBN: 978-0-596-15589-6
+
+[<a id="ch5References30">30</a>] AppJet, Inc.: “[Etherpad and EasySync Technical Manual](https://github.com/ether/etherpad-lite/blob/e2ce9dc/doc/easysync/easysync-full-description.pdf),” *github.com*, March 26,2011.
+
+[<a id="ch5References31">31</a>] John Day-Richter: “[What’s Different About the New Google Docs: Making Col‐laboration Fast](http://googledrive.blogspot.com/2010/09/whats-different-about-new-google-docs.html),” *googledrive.blogspot.com*, 23 September 2010.
+
+[<a id="ch5References32">32</a>] Martin Kleppmann and Alastair R. Beresford: “[A Conflict-Free Replicated JSON Datatype](http://arxiv.org/abs/1608.03960),” arXiv:1608.03960, August 13, 2016.
+
+[<a id="ch5References33">33</a>] Frazer Clement: “[Eventual Consistency – Detecting Conflicts](http://messagepassing.blogspot.co.uk/2011/10/eventual-consistency-detecting.html),” *messagepass‐ing.blogspot.co.uk*, October 20, 2011.
+
+[<a id="ch5References34">34</a>] Robert Hodges: “[State of the Art for MySQL Multi-Master Replication](https://www.percona.com/live/mysql-conference-2013/sessions/state-art-mysql-multi-master-replication),” at *Per‐cona Live: MySQL Conference & Expo*, April 2013.
+
+[<a id="ch5References35">35</a>] John Daily: “[Clocks Are Bad, or, Welcome to the Wonderful World of Dis‐tributed Systems](http://basho.com/clocks-are-bad-or-welcome-to-distributed-systems/),” *basho.com*, November 12, 2013.
+
+[<a id="ch5References36">36</a>] Riley Berton: “[Is Bi-Directional Replication (BDR) in Postgres Transactional?](http://sdf.org/~riley/blog/2016/01/04/is-bi-directional-replication-bdr-in-postgres-transactional/),”*sdf.org*, January 4, 2016.
+
+[<a id="ch5References37">37</a>] Giuseppe DeCandia, Deniz Hastorun, Madan Jampani, et al.: “[Dynamo: Ama‐zon’s Highly Available Key-Value Store](http://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf),” at *21st ACM Symposium on Operating Sys‐tems Principles* (SOSP), October 2007.
+
+[<a id="ch5References38">38</a>] Marc Shapiro, Nuno Preguiça, Carlos Baquero, and Marek Zawirski: “[A Com‐prehensive Study of Convergent and Commutative Replicated Data Types](http://hal.inria.fr/inria-00555588/),” INRIA Research Report no. 7506, January 2011.
+
+[<a id="ch5References39">39</a>] Sam Elliott: “[CRDTs: An UPDATE (or Maybe Just a PUT)](https://speakerdeck.com/lenary/crdts-an-update-or-just-a-put),” at *RICON West*,October 2013.
+
+[<a id="ch5References40">40</a>] Russell Brown: “[A Bluffers Guide to CRDTs in Riak](https://gist.github.com/russelldb/f92f44bdfb619e089a4d),” *gist.github.com*, October
+
+28, 2013.
+
+[<a id="ch5References41">41</a>] Benjamin Farinier, Thomas Gazagnaire, and Anil Madhavapeddy: “[Mergeable Persistent Data Structures](http://gazagnaire.org/pub/FGM15.pdf),” at *26es Journées Francophones des Langages Applicatifs*(JFLA), January 2015.
+
+[<a id="ch5References42">42</a>] Chengzheng Sun and Clarence Ellis: “[Operational Transformation in Real-Time Group Editors: Issues, Algorithms, and Achievements](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.53.933&rep=rep1&type=pdf),” at *ACM Conference on Com‐puter Supported Cooperative Work* (CSCW), November 1998.
+
+[<a id="ch5References43">43</a>] Lars Hofhansl: “[HBASE-7709: Infinite Loop Possible in Master/Master Replica‐tion](https://issues.apache.org/jira/browse/HBASE-7709),” *issues.apache.org*, January 29, 2013.
+
+[<a id="ch5References44">44</a>] David K. Gifford: “[Weighted Voting for Replicated Data](https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.84.7698),” at *7th ACM Sympo‐sium on Operating Systems Principles* (SOSP), December 1979. [doi:10.1145/800215.806583](http://dx.doi.org/10.1145/800215.806583)
+
+[<a id="ch5References45">45</a>] Heidi Howard, Dahlia Malkhi, and Alexander Spiegelman: “[Flexible Paxos: Quo‐rum Intersection Revisited](https://arxiv.org/abs/1608.06696),” *arXiv:1608.06696*, August 24, 2016.
+
+[<a id="ch5References46">46</a>] Joseph Blomstedt: “[Re: Absolute Consistency](http://lists.basho.com/pipermail/riak-users_lists.basho.com/2012-January/007157.html),” email to *riak-users* mailing list,*lists.basho.com*, January 11, 2012.
+
+[<a id="ch5References47">47</a>] Joseph Blomstedt: “[Bringing Consistency to Riak](https://vimeo.com/51973001),” at *RICON West*, October 2012.
+
+[<a id="ch5References48">48</a>] Peter Bailis, Shivaram Venkataraman, Michael J. Franklin, et al.: “[Quantifying Eventual Consistency with PBS](http://www.bailis.org/papers/pbs-cacm2014.pdf),” *Communications of the ACM*, volume 57, number 8,pages 93–102, August 2014. [doi:10.1145/2632792](http://dx.doi.org/10.1145/2632792)
+
+[<a id="ch5References49">49</a>]  Jonathan Ellis: “[Modern Hinted Handoff](https://www.datastax.com/blog/modern-hinted-handoff),” *datastax.com*, December 11, 2012.
+
+[<a id="ch5References50">50</a>] “[Project Voldemort Wiki](https://github.com/voldemort/voldemort/wiki),” *github.com*, 2013.
+
+[<a id="ch5References51">51</a>] “[Apache Cassandra 2.0 Documentation](https://docs.datastax.com/en/home/docs/index.html),” DataStax, Inc., 2014.
+
+[<a id="ch5References52">52</a>] “[Riak Enterprise: Multi-Datacenter Replication](http://basho.com/assets/MultiDatacenter_Replication.pdf).” Technical whitepaper, Basho Technologies, Inc., September 2014.
+
+[<a id="ch5References53">53</a>] Jonathan Ellis: “[Why Cassandra Doesn’t Need Vector Clocks](https://www.datastax.com/blog/why-cassandra-doesnt-need-vector-clocks),” *datastax.com*,September 2, 2013.
+
+[<a id="ch5References54">54</a>] Leslie Lamport: “[Time, Clocks, and the Ordering of Events in a Distributed Sys‐tem](http://research.microsoft.com/en-US/um/people/Lamport/pubs/time-clocks.pdf),” *Communications of the ACM*, volume 21, number 7, pages 558–565, July 1978. [doi:10.1145/359545.359563](https://dl.acm.org/doi/10.1145/359545.359563)
+
+[<a id="ch5References55">55</a>] Joel Jacobson: “[Riak 2.0: Data Types](http://blog.joeljacobson.com/riak-2-0-data-types/),” *blog.joeljacobson.com*, March 23, 2014.
+
+[<a id="ch5References56">56</a>] D. Stott Parker Jr., Gerald J. Popek, Gerard Rudisin, et al.: “[Detection of Mutual Inconsistency in Distributed Systems](http://zoo.cs.yale.edu/classes/cs426/2013/bib/parker83detection.pdf),” *IEEE Transactions on Software Engineering*,volume 9, number 3, pages 240–247, May 1983. [doi:10.1109/TSE.1983.236733](https://ieeexplore.ieee.org/document/1703051/)
+
+[<a id="ch5References57">57</a>] Nuno Preguiça, Carlos Baquero, Paulo Sérgio Almeida, et al.: “[Dotted Version Vectors: Logical Clocks for Optimistic Replication](http://arxiv.org/pdf/1011.5808v1.pdf),” arXiv:1011.5808, November 26,2010.
+
+[<a id="ch5References58">58</a>]  Sean Cribbs: “[A Brief History of Time in Riak](https://www.youtube.com/watch?v=HHkKPdOi-ZU),” at *RICON*, October 2014.
+
+[<a id="ch5References59">59</a>] Russell Brown: “[Vector Clocks Revisited Part 2: Dotted Version Vectors](http://basho.com/posts/technical/vector-clocks-revisited-part-2-dotted-version-vectors/),”*basho.com*, November 10, 2015.
+
+[<a id="ch5References60">60</a>] Carlos Baquero: “[Version Vectors Are Not Vector Clocks](https://haslab.wordpress.com/2011/07/08/version-vectors-are-not-vector-clocks/),” *haslab.word‐press.com*, July 8, 2011.
+
+[<a id="ch5References61">61</a>] Reinhard Schwarz and Friedemann Mattern: “[Detecting Causal Relationships in Distributed Computations: In Search of the Holy Grail](http://dcg.ethz.ch/lectures/hs08/seminar/papers/mattern4.pdf),” *Distributed Computing*, volume 7, number 3, pages 149–174, March 1994. [doi:10.1007/BF02277859](http://dx.doi.org/10.1007/BF02277859)
+

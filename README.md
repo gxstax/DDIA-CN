@@ -5,7 +5,10 @@
 
 * 译者 [马以](https://github.com/gxstax)
 
-* gitbook在线阅读地址：[在线阅读](https://ma-yi.gitbook.io/ddia-zh-cn/)
+* gitbook在线阅读地址：
+[第一版](https://ma-yi.gitbook.io/ddia-zh-cn/)
+[第二版（持续更新中...）](https://ma-yi.gitbook.io/ddia-zh-cn/)
+
 
 
 

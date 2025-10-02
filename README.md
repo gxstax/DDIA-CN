@@ -8,7 +8,7 @@
 * gitbook在线阅读地址：
 	- [第一版](https://ma-yi.gitbook.io/ddia-zh-cn/)
 
-	- [第二版（持续更新中...）](https://ma-yi.gitbook.io/ddia-zh-cn/)
+	- [第二版（持续更新中...）](https://gxstax.github.io/DDIA-ED2/)
 
 
 

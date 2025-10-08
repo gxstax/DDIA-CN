@@ -134,7 +134,22 @@
 
 日志仅仅是磁盘上的一个支持追加的记录序列。我们之前在[第三章](../part1/chapter3.md)的**日志结构存储引擎**和**预写日志**（WAL技术：write-ahead logs）以及[第五张](../part2/chapter5.md)的副本中讨论过日志。
 
+我们可以使用同样的结构来实现消息代理：生产者通过将消息追加到日志的末尾来发送消息，消费者通过依次读取日志来接收消息。如果消费者读取到了日志的末尾，那么它将会等待消息追加的通知。UNIX的tail -f 工具，正是基于这种工作思路来实现监听是否有数据追加到文件。
+
+为了打破单个磁盘所能提供的高吞吐量的上限，日志支持分区（[第六章](../part2/chapter6.md)的内容）。不同的分区可以分布在不同的机器上，每一个分区的日志都是隔离的，从而可以实现独立于其他分区的读取和写入。一个主题可以定义成带有相同类型数据的一组分区。如<font color="#A7535A">[图11-3](#figure11-3)</font>所示：
+
+在每个分区中，代理服务为每条消息会分配一个单调递增的序列号或偏移量-*offset*(在图11-3，方框中的数字便是偏移量）。
+
+
+![图11-3](../img/figure11-3.png)
+<a id="figure11-3"><font color="#A7535A"> **图 11-3.**</font> </a>生产者通过追加到主题分区文件的方式发送消息，然后消费者依次读取。
+
+Apache Kafka\[[17](#ch11References17),[18](#ch11References18)],Amazon Kinesis Steams\[[19](#ch11References19)],和Twitter的DistributedLog\[[20](#ch11References20),[21](#ch11References21)] 是这种基于日志的消息代理实现方式。Google Cloud Pub/Sub 的架构也是类似，但是它是通过暴漏JMS风格的API的方式而非通过抽象日志的方式\[[16](#ch11References16)].尽管这些消息代理把所有的消息都写入磁盘，但是他们依然能够通过多服务器分区的方式实现百万级别的消息吞吐量，并且可以通过消息复制来实现容错性\[[22](#ch11References22),[23](#ch11References23)].
+
+
 #### 日志与传统消息系统对比
+
+
 
 #### 消费者偏移
 
@@ -165,7 +180,7 @@
 
 
 
---- 
+---
 ## 引用
 
 [<a id="ch11References1">1</a>] Tyler Akidau, Robert Bradshaw, Craig Chambers, et al.: [“The Dataflow Model: A Practical Approach to Balancing Correctness, Latency, and Cost in Massive-Scale,Unbounded, Out-of-Order Data Processing,”](https://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf) Proceedings of the VLDB Endowment,volume 8, number 12, pages 1792–1803, August 2015. doi:10.14778/2824032.2824076
@@ -372,7 +387,6 @@ Data Bases (VLDB), August 2013.
 [<a id="ch11References99">99</a>] E. N. (Mootaz) Elnozahy, Lorenzo Alvisi, Yi-Min Wang, and David B. Johnson:“[A Survey of Rollback-Recovery Protocols in Message-Passing Systems](https://www.cs.utexas.edu/~lorenzo/papers/SurveyFinal.pdf),” ACM Computing Surveys, volume 34, number 3, pages 375–408, September 2002. doi:10.1145/568522.568525
 
 [<a id="ch11References100">100</a>] Adam Warski: “[Kafka Streams – How Does It Fit the Stream Processing Landscape?](https://softwaremill.com/kafka-streams-how-does-it-fit-stream-landscape/),” softwaremill.com, June 1, 2016.
-
 
 
 

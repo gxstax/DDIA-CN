@@ -260,6 +260,7 @@ Apache Kafka\[[17](#ch11References17),[18](#ch11References18)],Amazon Kinesis St
 
 领英的Databus\[[25](#ch11References25)]，脸书的Wormhole\[[26](#ch11References26)],和雅虎的Sherpa\[[27](#ch11References27)]都广泛的使用这种思想。Bottled Water通过对预写日志的转译为PostGreSQL实现了CDC\[[28](#ch11References28)],Maxwell和Debezium通过解析binlog日志，为MySQL实现了同样的事情\[[29](#ch11References29),[30](#ch11References30),[31](#ch11References31)],Mongoriver通过读MongoDB的oplog为MongoDB\[[32](#ch11References32),[33](#ch11References33)],以及GoldenGate为Oracle\[[34](#ch11References34),[35](#ch11References35)]也都提供了同样的实现。
 
+像消息代理，变更数据捕获通常是异步的:数据库记录系统不需要等到消费者应用后再提交。这种设计在增加一个慢消费者时通常比较有优势，因为它不会对系统记录造成太大影响，但是它同样也有劣势就是复制延迟问题（参见：[复制延迟问题](#复制延迟问题)）。
 
 #### 快照初始化
 

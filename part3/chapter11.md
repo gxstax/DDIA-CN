@@ -258,7 +258,8 @@ Apache Kafka\[[17](#ch11References17),[18](#ch11References18)],Amazon Kinesis St
 
 数据库触发器可以被用来实现**数据捕获**（参见：[基于触发器的复制](#基于触发器的复制)）通过注册触发器来监控数据表的所有变更，并将相应条目添加到变更日志表中。但是这种机制很脆弱并有显著的性能开销。尽管解析日志的方式会带来一些比如处理方式的变化这样的挑战，但起码它看起比较健壮。
 
-领英的Databus\[[25](#ch11References25)]，脸书的Wormhole\[[26](#ch11References26)],和雅虎的Sherpa\[[27](#ch11References27)]都广泛的使用这种思想。
+领英的Databus\[[25](#ch11References25)]，脸书的Wormhole\[[26](#ch11References26)],和雅虎的Sherpa\[[27](#ch11References27)]都广泛的使用这种思想。Bottled Water通过对预写日志的转译为PostGreSQL实现了CDC\[[28](#ch11References28)],Maxwell和Debezium通过解析binlog日志，为MySQL实现了同样的事情\[[29](#ch11References29),[30](#ch11References30),[31](#ch11References31)],Mongoriver通过读MongoDB的oplog为MongoDB\[[32](#ch11References32),[33](#ch11References33)],以及GoldenGate为Oracle\[[34](#ch11References34),[35](#ch11References35)]也都提供了同样的实现。
+
 
 #### 快照初始化
 

@@ -284,7 +284,14 @@ Apache Kafka\[[17](#ch11References17),[18](#ch11References18)],Amazon Kinesis St
 
 Apache Kafka支持这种日志压缩特性。正如我们将在本章后面看到的，它允许消息代理被持久化存储，而不单单是作为临时消息传递。
 
+#### 变更流的API支持
+
+越来越多的数据库开始将变更数据流的支持作为一等函数，而非采用CDC惯常的改造升级和逆向工程方案。例如，RethinkDB允许查询订阅查询结果变更的通知\[[36](#ch11References36)],Firebase\[[37](#ch11References37)]和CouchDB\[[38](#ch11References38)]提供了基于动态消息的数据同步，该功能同时对应用程序开放，Meteor使用MongoDB的oplog去订阅数据变更并实时更新用户界面\[[39](#ch11References39)]。
+
+### 事件溯源
+
 ## 流处理
+
 
 
 

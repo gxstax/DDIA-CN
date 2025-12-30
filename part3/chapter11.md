@@ -446,6 +446,8 @@ CEP系统通常采用SQL等高级声明式查询语言或图形用户界面来�
 
 在这些系统中，查询与数据的关系与常规数据库相反。通常情况下，数据库会持久存储数据并将查询视为临时性操作：当查询提交时，数据库会检索与查询匹配的数据，完成后便不再关注该查询。CEP引擎则逆转了这种角色：查询被长期存储，而来自输入流的事件则持续流经它们，以寻找与事件模式匹配的查询\[[68](ch11References68)]。
 
+CEP的实现包括Esper\[[69](#ch11References69)]、IBMInfoSphereStreams\[[70](#ch11References70)]、Apama、 TIBCO StreamBase和SQLstream。分布式流处理器如Samza也正逐步支持流上的声明式查询SQL\[[71](#ch11References71)]。
+
 #### 流分析
 
 
